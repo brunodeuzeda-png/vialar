@@ -3,128 +3,202 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { cn, DEMAND_STATUS_LABELS, DEMAND_STATUS_COLORS, PRIORITY_COLORS, formatDateTime, timeAgo } from '@/lib/utils';
-import { Plus, Search, Filter } from 'lucide-react';
+import {
+  cn, STATUS_LABEL, STATUS_COLOR, STATUS_DOT, PRIORITY_COLOR, PRIORITY_LABEL,
+  CATEGORY_LABEL, CATEGORY_ICON, timeAgo
+} from '@/lib/utils';
+import { Plus, Search, Filter, MessageSquare, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { TableRowSkeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import Header from '@/components/layout/Header';
+import NewDemandModal from '@/components/demands/NewDemandModal';
 
-const STATUSES = ['', 'ABERTA', 'EM_ANDAMENTO', 'AGUARDANDO_ORCAMENTO', 'CONCLUIDA', 'CANCELADA'];
+const STATUSES = [
+  { value: '', label: 'Todos' },
+  { value: 'ABERTA', label: 'Aberta' },
+  { value: 'EM_ANDAMENTO', label: 'Em andamento' },
+  { value: 'AGUARDANDO_ORCAMENTO', label: 'Aguard. orçamento' },
+  { value: 'CONCLUIDA', label: 'Concluída' },
+  { value: 'CANCELADA', label: 'Cancelada' },
+];
+
 const PRIORITIES = ['', 'CRITICA', 'ALTA', 'MEDIA', 'BAIXA'];
-const CATEGORIES = ['', 'MANUTENCAO', 'LIMPEZA', 'SEGURANCA', 'FINANCEIRO', 'BARULHO', 'INFRAESTRUTURA', 'ADMINISTRATIVO', 'OUTRO'];
 
 export default function DemandsPage() {
-  const [filters, setFilters] = useState({ status: '', priority: '', category: '', search: '', page: 1 });
+  const [filters, setFilters] = useState({ status: '', priority: '', search: '', page: 1 });
+  const [showNew, setShowNew] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['demands', filters],
-    queryFn: () => api.get('/demands', { params: filters }).then((r) => r.data),
+    queryFn: () => api.get('/demands', { params: { ...filters, limit: 15 } }).then(r => r.data),
   });
 
-  function setFilter(key: string, value: string) {
-    setFilters((f) => ({ ...f, [key]: value, page: 1 }));
-  }
+  const set = (key: string, value: string) => setFilters(f => ({ ...f, [key]: value, page: 1 }));
 
   return (
-    <div className="p-6 space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Chamados</h1>
-          <p className="text-gray-500 text-sm">{data?.pagination?.total ?? '—'} registros</p>
-        </div>
-        <Link href="/demands/new" className="btn-primary flex items-center gap-2">
-          <Plus size={16} /> Novo Chamado
-        </Link>
-      </div>
-
-      {/* Filters */}
-      <div className="card p-4 flex flex-wrap gap-3">
-        <div className="flex-1 min-w-48 relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            className="input pl-9"
-            placeholder="Buscar chamados..."
-            value={filters.search}
-            onChange={(e) => setFilter('search', e.target.value)}
-          />
-        </div>
-        <select className="input w-40" value={filters.status} onChange={(e) => setFilter('status', e.target.value)}>
-          {STATUSES.map((s) => <option key={s} value={s}>{s ? DEMAND_STATUS_LABELS[s] : 'Todos os status'}</option>)}
-        </select>
-        <select className="input w-36" value={filters.priority} onChange={(e) => setFilter('priority', e.target.value)}>
-          {PRIORITIES.map((p) => <option key={p} value={p}>{p || 'Prioridade'}</option>)}
-        </select>
-        <select className="input w-40" value={filters.category} onChange={(e) => setFilter('category', e.target.value)}>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c || 'Categoria'}</option>)}
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Chamado</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Prioridade</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Origem</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Data</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {isLoading && (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Carregando...</td></tr>
-            )}
-            {data?.data?.map((demand: any) => (
-              <tr key={demand.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3">
-                  <Link href={`/demands/${demand.id}`} className="hover:text-primary-600">
-                    <p className="font-medium text-gray-900">{demand.title}</p>
-                    <p className="text-xs text-gray-500">{demand.requester_name} · {demand.unit_identifier}</p>
-                  </Link>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={cn('px-2 py-1 rounded-full text-xs font-medium', DEMAND_STATUS_COLORS[demand.status])}>
-                    {DEMAND_STATUS_LABELS[demand.status]}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={cn('px-2 py-1 rounded-full text-xs font-medium', PRIORITY_COLORS[demand.priority])}>
-                    {demand.priority}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{demand.origin}</td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{timeAgo(demand.created_at)}</td>
-              </tr>
-            ))}
-            {!isLoading && !data?.data?.length && (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Nenhum chamado encontrado</td></tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Pagination */}
-        {data?.pagination && data.pagination.pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <p className="text-sm text-gray-500">
-              Página {data.pagination.page} de {data.pagination.pages}
+    <div className="flex flex-col min-h-screen">
+      <Header title="Chamados" />
+      <main className="flex-1 p-6 animate-fade-in">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Chamados</h1>
+            <p className="page-subtitle">
+              {data?.pagination?.total ?? '—'} registros encontrados
             </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
-                disabled={filters.page === 1}
-                className="btn-secondary px-3 py-1 text-sm"
-              >
-                Anterior
-              </button>
-              <button
-                onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
-                disabled={filters.page === data.pagination.pages}
-                className="btn-secondary px-3 py-1 text-sm"
-              >
-                Próxima
-              </button>
-            </div>
           </div>
-        )}
-      </div>
+          <button onClick={() => setShowNew(true)} className="btn-primary">
+            <Plus size={16} /> Novo Chamado
+          </button>
+        </div>
+
+        {/* Status tabs */}
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit mb-5">
+          {STATUSES.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => set('status', value)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
+                filters.status === value
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search + filters */}
+        <div className="flex gap-3 mb-5">
+          <div className="relative flex-1 max-w-sm">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              className="input pl-9"
+              placeholder="Buscar chamados..."
+              value={filters.search}
+              onChange={e => set('search', e.target.value)}
+            />
+          </div>
+          <select
+            className="input w-36"
+            value={filters.priority}
+            onChange={e => set('priority', e.target.value)}
+          >
+            <option value="">Prioridade</option>
+            {PRIORITIES.filter(Boolean).map(p => (
+              <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Table */}
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Chamado</th>
+                <th>Status</th>
+                <th>Prioridade</th>
+                <th>Categoria</th>
+                <th>Aberto</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading && Array(8).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+
+              {!isLoading && data?.data?.map((d: any) => (
+                <tr key={d.id} className="group cursor-pointer" onClick={() => {}}>
+                  <td>
+                    <Link href={`/demands/${d.id}`} className="block">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-base flex-shrink-0">
+                          {CATEGORY_ICON[d.category] || '📌'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                            {d.title}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {d.requester_name} {d.unit_identifier && `· Apt ${d.unit_identifier}`}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </td>
+                  <td>
+                    <Badge className={STATUS_COLOR[d.status]} dot={STATUS_DOT[d.status]}>
+                      {STATUS_LABEL[d.status]}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge className={PRIORITY_COLOR[d.priority]}>
+                      {PRIORITY_LABEL[d.priority]}
+                    </Badge>
+                  </td>
+                  <td>
+                    <span className="text-sm text-slate-500">
+                      {CATEGORY_ICON[d.category]} {CATEGORY_LABEL[d.category]}
+                    </span>
+                  </td>
+                  <td className="text-xs text-slate-400">{timeAgo(d.created_at)}</td>
+                  <td>
+                    <Link href={`/demands/${d.id}`}>
+                      <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+
+              {!isLoading && !data?.data?.length && (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      icon={<MessageSquare size={28} />}
+                      title="Nenhum chamado encontrado"
+                      description="Quando moradores abrirem chamados, eles aparecerão aqui."
+                      action={
+                        <button onClick={() => setShowNew(true)} className="btn-primary btn-sm">
+                          <Plus size={14} /> Criar chamado
+                        </button>
+                      }
+                    />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          {/* Pagination */}
+          {data?.pagination && data.pagination.pages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-50">
+              <p className="text-xs text-slate-400">
+                Página {data.pagination.page} de {data.pagination.pages} · {data.pagination.total} registros
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
+                  disabled={filters.page === 1}
+                  className="btn-secondary btn-sm"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
+                  disabled={filters.page === data.pagination.pages}
+                  className="btn-secondary btn-sm"
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {showNew && <NewDemandModal onClose={() => setShowNew(false)} onSuccess={() => { setShowNew(false); refetch(); }} />}
     </div>
   );
 }
