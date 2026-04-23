@@ -17,9 +17,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#F8F8F4" }}>
       <Sidebar />
-      <div style={{ flex: 1, marginLeft: "264px", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div style={{ flex: 1, marginLeft: "264px", display: "flex", flexDirection: "column", minHeight: "100vh", background: "#F8F8F4" }}>
         {children}
       </div>
     </div>

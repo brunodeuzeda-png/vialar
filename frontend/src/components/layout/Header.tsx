@@ -11,38 +11,37 @@ export default function Header({ title }: HeaderProps) {
 
   return (
     <header style={{
-      height: 56,
-      background: 'var(--bg)',
-      borderBottom: '1px solid var(--border)',
+      height: 60,
+      background: '#F8F8F4',
+      borderBottom: '1px solid #E8E8E0',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 28px',
+      padding: '0 32px',
       position: 'sticky', top: 0, zIndex: 20,
     }}>
       <div>
         {title ? (
-          <h1 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>{title}</h1>
+          <h1 style={{ fontSize: 16, fontWeight: 800, color: '#0A0A0A', letterSpacing: '-0.02em' }}>{title}</h1>
         ) : (
-          <p style={{ fontSize: 13, color: 'var(--text-2)' }}>
+          <p style={{ fontSize: 15, color: '#888' }}>
             {greeting},{' '}
-            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{user?.name?.split(' ')[0]}</span>
+            <span style={{ fontWeight: 800, color: '#0A0A0A' }}>{user?.name?.split(' ')[0]}</span>
           </p>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button style={{
-          position: 'relative', padding: 8, borderRadius: 8,
+          position: 'relative', padding: 9, borderRadius: 9,
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--text-2)', display: 'flex', alignItems: 'center',
+          color: '#999', display: 'flex', alignItems: 'center',
           transition: 'color 0.15s, background 0.15s',
         }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-2)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-2)'; (e.currentTarget as HTMLElement).style.background = 'none'; }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#333'; (e.currentTarget as HTMLElement).style.background = '#EEEDE8'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#999'; (e.currentTarget as HTMLElement).style.background = 'none'; }}
         >
-          <Bell size={17} />
+          <Bell size={18} />
           <span style={{
-            position: 'absolute', top: 7, right: 7,
-            width: 5, height: 5, background: 'var(--danger)',
-            borderRadius: '50%',
+            position: 'absolute', top: 8, right: 8,
+            width: 5, height: 5, background: '#EF4444', borderRadius: '50%',
           }} />
         </button>
       </div>
