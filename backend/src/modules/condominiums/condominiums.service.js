@@ -89,4 +89,21 @@ async function remove(id, administradoraId) {
   await query('UPDATE condominiums SET is_active = false WHERE id = $1', [id]);
 }
 
-module.exports = { list, getOne, create, update, remove };
+async function updateSindico(id, administradoraId, data) {
+  await getOne(id, administradoraId);
+  const { sindico_name, sindico_phone, sindico_whatsapp, sindico_email } = data;
+  const { rows: [updated] } = await query(
+    `UPDATE condominiums SET
+       sindico_name     = COALESCE($1, sindico_name),
+       sindico_phone    = COALESCE($2, sindico_phone),
+       sindico_whatsapp = COALESCE($3, sindico_whatsapp),
+       sindico_email    = COALESCE($4, sindico_email),
+       updated_at       = NOW()
+     WHERE id = $5
+     RETURNING id, name, sindico_name, sindico_phone, sindico_whatsapp, sindico_email`,
+    [sindico_name || null, sindico_phone || null, sindico_whatsapp || null, sindico_email || null, id]
+  );
+  return updated;
+}
+
+module.exports = { list, getOne, create, update, remove, updateSindico };

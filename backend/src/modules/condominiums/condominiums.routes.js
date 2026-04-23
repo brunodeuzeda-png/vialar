@@ -39,4 +39,11 @@ router.delete('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.patch('/:id/sindico', async (req, res, next) => {
+  try {
+    const condo = await svc.updateSindico(req.params.id, req.user.administradora_id, req.body);
+    res.json(condo);
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

@@ -100,6 +100,28 @@ async function generateComplianceAlert(obligation, daysLeft, condominiumId) {
   }
 }
 
+async function routeDemandToSetor(demand, setores) {
+  try {
+    const raw = await callClaude(P.ROUTING_SYSTEM, P.ROUTING_USER(demand, setores), {
+      condominiumId: demand.condominium_id,
+      demandId: demand.id,
+      interactionType: 'ROUTING',
+      maxTokens: 256,
+    });
+    const result = JSON.parse(raw);
+    if (result.assigned_setor && setores.includes(result.assigned_setor)) {
+      await query(
+        `UPDATE demands SET assigned_setor = $1, routing_data = $2 WHERE id = $3`,
+        [result.assigned_setor, JSON.stringify(result), demand.id]
+      );
+    }
+    return result;
+  } catch (err) {
+    logger.warn({ err, demandId: demand.id }, 'Demand routing failed');
+    return null;
+  }
+}
+
 async function triageWhatsappMessage(message) {
   try {
     const raw = await callClaude(P.WHATSAPP_TRIAGE_SYSTEM, P.WHATSAPP_TRIAGE_USER(message), {
@@ -141,4 +163,4 @@ async function getUsage(condominiumId, month) {
   return usage;
 }
 
-module.exports = { triageDemand, summarizeDemand, generateDailyDigest, generateComplianceAlert, triageWhatsappMessage, getUsage };
+module.exports = { triageDemand, summarizeDemand, generateDailyDigest, generateComplianceAlert, triageWhatsappMessage, routeDemandToSetor, getUsage };

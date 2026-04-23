@@ -103,8 +103,32 @@ Retorne JSON:
 Se não for uma demanda/chamado (ex: saudação, pergunta simples), retorne is_demand: false.
 `;
 
+const ROUTING_SYSTEM = `Você é um sistema de roteamento de chamados condominiais.
+Com base no conteúdo do chamado e nos setores disponíveis, determine para qual setor da administradora o chamado deve ser encaminhado.
+Responda APENAS em JSON válido, sem markdown.`;
+
+const ROUTING_USER = (demand, setores) => `
+Analise este chamado e indique o setor responsável pelo atendimento.
+
+Setores disponíveis: ${setores.join(', ')}
+
+Chamado:
+Título: ${demand.title}
+Descrição: ${demand.description}
+Categoria: ${demand.category}
+Prioridade: ${demand.priority}
+
+Retorne JSON:
+{
+  "assigned_setor": "nome exato de um dos setores disponíveis",
+  "justificativa": "motivo da escolha em uma frase",
+  "notificar_sindico": true|false
+}
+`;
+
 module.exports = {
   TRIAGE_SYSTEM, TRIAGE_USER,
+  ROUTING_SYSTEM, ROUTING_USER,
   SUMMARY_SYSTEM, SUMMARY_USER,
   DAILY_DIGEST_SYSTEM, DAILY_DIGEST_USER,
   COMPLIANCE_ALERT_SYSTEM, COMPLIANCE_ALERT_USER,

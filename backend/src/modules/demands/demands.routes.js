@@ -4,6 +4,7 @@ const authMiddleware = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
 const { isSindico, isAnyRole } = require('../../middleware/rbac');
 const aiService = require('../ai/ai.service');
+const { SETORES } = require('../team/team.service');
 const { emitToCondominium } = require('../../websocket/ws.server');
 
 router.use(authMiddleware, tenantMiddleware);
@@ -21,11 +22,19 @@ router.post('/', isAnyRole, async (req, res, next) => {
 
     emitToCondominium(req.tenant.id, 'demand:created', demand);
 
-    // Triagem IA assíncrona
+    // Triagem IA + roteamento assíncrono
+    const administradoraId = req.user.administradora_id;
     aiService.triageDemand(demand).then(async (triage) => {
       if (triage) {
         await service.update(demand.id, req.tenant.id, { ai_triage_data: triage }, null);
         emitToCondominium(req.tenant.id, 'demand:triage_done', { id: demand.id, triage });
+      }
+      if (administradoraId) {
+        const routing = await aiService.routeDemandToSetor(
+          { ...demand, category: triage?.category || demand.category, priority: triage?.priority || demand.priority },
+          SETORES
+        );
+        if (routing) emitToCondominium(req.tenant.id, 'demand:routed', { id: demand.id, setor: routing.assigned_setor });
       }
     }).catch(() => {});
 

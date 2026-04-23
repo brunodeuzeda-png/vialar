@@ -30,11 +30,16 @@ interface Condo {
   open_demands: number;
   total_users: number;
   created_at: string;
+  sindico_name: string;
+  sindico_phone: string;
+  sindico_whatsapp: string;
+  sindico_email: string;
 }
 
 const emptyForm = {
   name: '', cnpj: '', address: '', city: '', state: '', zip_code: '',
   total_units: '', whatsapp_number: '',
+  sindico_name: '', sindico_phone: '', sindico_whatsapp: '', sindico_email: '',
 };
 
 export default function CondominiumsPage() {
@@ -87,6 +92,8 @@ export default function CondominiumsPage() {
       name: c.name || '', cnpj: c.cnpj || '', address: c.address || '',
       city: c.city || '', state: c.state || '', zip_code: '',
       total_units: String(c.total_units || ''), whatsapp_number: c.whatsapp_number || '',
+      sindico_name: c.sindico_name || '', sindico_phone: c.sindico_phone || '',
+      sindico_whatsapp: c.sindico_whatsapp || '', sindico_email: c.sindico_email || '',
     });
     setShowModal(true);
   }
@@ -313,6 +320,41 @@ export default function CondominiumsPage() {
                   onBlur={e => (e.target.style.borderColor = B)} />
               </Row>
 
+              {/* Síndico section */}
+              <div style={{ borderTop: `1px solid ${B}`, paddingTop: 18, marginTop: 4 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
+                  Dados do síndico
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <Row label="Nome do síndico">
+                    <input style={inputStyle} placeholder="Nome completo" value={form.sindico_name}
+                      onChange={set('sindico_name')}
+                      onFocus={e => (e.target.style.borderColor = AC)}
+                      onBlur={e => (e.target.style.borderColor = B)} />
+                  </Row>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <Row label="Telefone">
+                      <input style={inputStyle} placeholder="(11) 9xxxx-xxxx" value={form.sindico_phone}
+                        onChange={set('sindico_phone')}
+                        onFocus={e => (e.target.style.borderColor = AC)}
+                        onBlur={e => (e.target.style.borderColor = B)} />
+                    </Row>
+                    <Row label="WhatsApp">
+                      <input style={inputStyle} placeholder="5511999999999" value={form.sindico_whatsapp}
+                        onChange={set('sindico_whatsapp')}
+                        onFocus={e => (e.target.style.borderColor = AC)}
+                        onBlur={e => (e.target.style.borderColor = B)} />
+                    </Row>
+                  </div>
+                  <Row label="E-mail do síndico">
+                    <input style={inputStyle} type="email" placeholder="sindico@email.com" value={form.sindico_email}
+                      onChange={set('sindico_email')}
+                      onFocus={e => (e.target.style.borderColor = AC)}
+                      onBlur={e => (e.target.style.borderColor = B)} />
+                  </Row>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                 <button type="button" onClick={closeModal} style={{
                   flex: 1, padding: '12px', background: '#fff', color: T,
@@ -400,6 +442,12 @@ function CondoCard({ condo, onEdit, onToggle, inactive }: { condo: Condo; onEdit
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Phone size={13} color={T3} />
             <span style={{ fontSize: 12, color: T2 }}>{condo.whatsapp_number}</span>
+          </div>
+        )}
+        {condo.sindico_name && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Users size={13} color={T3} />
+            <span style={{ fontSize: 12, color: T2 }}>Sínd: {condo.sindico_name}</span>
           </div>
         )}
       </div>
