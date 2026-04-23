@@ -1,9 +1,9 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/layout/Sidebar';
-import { PageLoader } from '@/components/ui/Spinner';
+import { useAuth } from '../../contexts/AuthContext';
+import Sidebar from '../../components/layout/Sidebar';
+import { PageLoader } from '../../components/ui/Spinner';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

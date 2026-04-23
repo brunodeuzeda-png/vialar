@@ -1,11 +1,11 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { formatDateTime } from '@/lib/utils';
+import { api } from '../../lib/api';
+import { formatDateTime } from '../../lib/utils';
 import { MessageCircle, ArrowUpRight, ArrowDownLeft, Wifi, WifiOff } from 'lucide-react';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Skeleton } from '@/components/ui/Skeleton';
-import Header from '@/components/layout/Header';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Skeleton } from '../../components/ui/Skeleton';
+import Header from '../../components/layout/Header';
 import Link from 'next/link';
 
 export default function CommunicationsPage() {
