@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowRight, Zap, MessageCircle, Shield } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -41,27 +42,9 @@ export default function LoginPage() {
         justifyContent: 'space-between',
       }} className="hidden-mobile">
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, background: 'var(--accent)',
-            borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: '#fff', fontWeight: 900, fontSize: 16, letterSpacing: '-0.02em' }}>V</span>
-          </div>
-          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.03em' }}>Vialar</span>
-        </div>
+        <Logo size={36} />
 
         <div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'var(--accent-dim)', borderRadius: 99,
-            padding: '5px 14px', marginBottom: 28,
-          }}>
-            <span style={{ width: 6, height: 6, background: 'var(--accent-2)', borderRadius: '50%', flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-2)', letterSpacing: '0.04em' }}>
-              Powered by Claude AI
-            </span>
-          </div>
           <h1 style={{
             fontSize: 44, fontWeight: 900, lineHeight: 1.1,
             letterSpacing: '-0.04em', color: 'var(--text)', marginBottom: 20,
@@ -87,7 +70,7 @@ export default function LoginPage() {
                 background: 'var(--surface)', border: '1px solid var(--border-2)',
                 borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Icon size={16} color="var(--accent-2)" />
+                <Icon size={16} color="var(--accent)" />
               </div>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</p>
@@ -190,7 +173,7 @@ export default function LoginPage() {
 
           <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>
             Não tem conta?{' '}
-            <a href="/register" style={{ color: 'var(--accent-2)', fontWeight: 600, textDecoration: 'none' }}>
+            <a href="/register" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
               Cadastre seu condomínio
             </a>
           </p>

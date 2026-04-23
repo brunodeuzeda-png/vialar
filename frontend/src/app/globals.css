@@ -14,9 +14,9 @@
   --text: #F0F0F5;
   --text-2: #7A7A8C;
   --text-3: #44444E;
-  --accent: #7C5CFC;
-  --accent-2: #A78BFA;
-  --accent-dim: rgba(124, 92, 252, 0.12);
+  --accent: #BBFF00;
+  --accent-2: #CCFF33;
+  --accent-dim: rgba(187, 255, 0, 0.1);
   --success: #22C55E;
   --success-dim: rgba(34, 197, 94, 0.1);
   --warning: #F59E0B;

@@ -6,6 +6,7 @@ import {
   LayoutDashboard, MessageSquare, ShieldCheck, Wrench,
   DollarSign, MessageCircle, Settings, LogOut, Zap
 } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 import { useState } from 'react';
 
 const nav = [
@@ -46,21 +47,7 @@ export default function Sidebar() {
         borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <div style={{
-          width: 32, height: 32, background: 'var(--accent)',
-          borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <span style={{ color: '#fff', fontWeight: 900, fontSize: 15, letterSpacing: '-0.02em' }}>V</span>
-        </div>
-        <div>
-          <p style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.03em', color: 'var(--text)', lineHeight: 1.2 }}>
-            Vialar
-          </p>
-          <p style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.04em', marginTop: 1 }}>
-            GESTÃO CONDOMINIAL
-          </p>
-        </div>
+        <Logo size={30} />
       </div>
 
       {/* AI badge */}
@@ -107,7 +94,7 @@ export default function Sidebar() {
             >
               <Icon
                 size={16}
-                color={active ? 'var(--accent-2)' : 'currentColor'}
+                color={active ? 'var(--accent)' : 'currentColor'}
                 style={{ flexShrink: 0 }}
               />
               {label}
@@ -157,7 +144,7 @@ export default function Sidebar() {
         }}>
           <div style={{
             width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-            background: 'linear-gradient(135deg, var(--accent), #A78BFA)',
+            background: 'linear-gradient(135deg, var(--accent), #AADD00)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 800, color: '#fff',
           }}>
