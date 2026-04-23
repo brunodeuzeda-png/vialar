@@ -5,7 +5,7 @@ async function list(administradoraId) {
   const { rows } = await query(
     `SELECT c.*,
        COUNT(DISTINCT u.id) FILTER (WHERE u.is_active) AS total_users,
-       COUNT(DISTINCT d.id) FILTER (WHERE d.status NOT IN ('RESOLVIDO','FECHADO')) AS open_demands
+       COUNT(DISTINCT d.id) FILTER (WHERE d.status NOT IN ('CONCLUIDA','CANCELADA')) AS open_demands
      FROM condominiums c
      LEFT JOIN users u ON u.condominium_id = c.id
      LEFT JOIN demands d ON d.condominium_id = c.id
@@ -21,7 +21,7 @@ async function getOne(id, administradoraId) {
   const { rows } = await query(
     `SELECT c.*,
        COUNT(DISTINCT u.id) FILTER (WHERE u.is_active) AS total_users,
-       COUNT(DISTINCT d.id) FILTER (WHERE d.status NOT IN ('RESOLVIDO','FECHADO')) AS open_demands,
+       COUNT(DISTINCT d.id) FILTER (WHERE d.status NOT IN ('CONCLUIDA','CANCELADA')) AS open_demands,
        COUNT(DISTINCT d.id) AS total_demands
      FROM condominiums c
      LEFT JOIN users u ON u.condominium_id = c.id
