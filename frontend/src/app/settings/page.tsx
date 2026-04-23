@@ -1,9 +1,20 @@
 'use client';
+import React from 'react';
 import Link from 'next/link';
 import { MessageCircle, Building2, Users, Bell, Shield, ChevronRight } from 'lucide-react';
 import Header from '@/components/layout/Header';
 
-const sections = [
+type SectionItem = {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  desc: string;
+  href: string;
+  badge?: string;
+};
+
+type Section = { title: string; items: SectionItem[] };
+
+const sections: Section[] = [
   {
     title: 'Integrações',
     items: [
