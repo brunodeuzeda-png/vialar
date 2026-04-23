@@ -7,7 +7,7 @@ import Header from '@/components/layout/Header';
 import {
   Building2, Plus, MapPin, Users, MessageSquare,
   CheckCircle2, XCircle, ArrowRight, X, Phone,
-  Loader2, AlertCircle, Search
+  Loader2, AlertCircle, Search, MessageCircle
 } from 'lucide-react';
 
 const L = '#F8F8F4';
@@ -45,6 +45,25 @@ function formatCep(v: string) {
   return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
 }
 
+// WhatsApp BR: stores as 5511999999999, displays as (11) 99999-9999
+function formatWhatsapp(v: string) {
+  const d = v.replace(/\D/g, '');
+  // strip leading 55 for display
+  const local = d.startsWith('55') ? d.slice(2) : d;
+  const n = local.slice(0, 11);
+  if (n.length <= 2) return n;
+  if (n.length <= 7) return `(${n.slice(0,2)}) ${n.slice(2)}`;
+  if (n.length <= 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
+  return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
+}
+
+function whatsappToStorage(v: string) {
+  const d = v.replace(/\D/g, '');
+  if (!d) return '';
+  const local = d.startsWith('55') ? d.slice(2) : d;
+  return local ? `55${local}` : '';
+}
+
 interface Condo {
   id: string; name: string; cnpj: string; address: string;
   city: string; state: string; zip_code: string; total_units: number;
@@ -75,14 +94,20 @@ export default function CondominiumsPage() {
   const [cepError, setCepError] = useState('');
   const numberRef = useRef<HTMLInputElement>(null);
 
-  const { data: condos = [], isLoading } = useQuery<Condo[]>({
+  const { data: condos = [], isLoading, error: listError } = useQuery<Condo[]>({
     queryKey: ['condominiums'],
     queryFn: () => api.get('/condominiums').then(r => r.data),
+    retry: 2,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, any>) => api.post('/condominiums', data),
-    onSuccess: () => { toast.success('Condomínio cadastrado!'); qc.invalidateQueries({ queryKey: ['condominiums'] }); closeModal(); },
+    onSuccess: (res) => {
+      toast.success('Condomínio cadastrado com sucesso!');
+      qc.setQueryData<Condo[]>(['condominiums'], (old = []) => [res.data, ...old]);
+      qc.invalidateQueries({ queryKey: ['condominiums'] });
+      closeModal();
+    },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Erro ao cadastrar'),
   });
 
@@ -115,9 +140,11 @@ export default function CondominiumsPage() {
       zip_code: c.zip_code || '',
       address: c.address || '', number: '', complement: '', neighborhood: '',
       city: c.city || '', state: c.state || '',
-      total_units: String(c.total_units || ''), whatsapp_number: c.whatsapp_number || '',
+      total_units: String(c.total_units || ''),
+      whatsapp_number: c.whatsapp_number ? formatWhatsapp(c.whatsapp_number) : '',
       sindico_name: c.sindico_name || '', sindico_phone: c.sindico_phone || '',
-      sindico_whatsapp: c.sindico_whatsapp || '', sindico_email: c.sindico_email || '',
+      sindico_whatsapp: c.sindico_whatsapp ? formatWhatsapp(c.sindico_whatsapp) : '',
+      sindico_email: c.sindico_email || '',
     });
     setTab('geral'); setShowModal(true);
   }
@@ -186,9 +213,11 @@ export default function CondominiumsPage() {
       city: form.city || null, state: form.state || null,
       zip_code: form.zip_code || null,
       total_units: form.total_units || null,
-      whatsapp_number: form.whatsapp_number || null,
-      sindico_name: form.sindico_name || null, sindico_phone: form.sindico_phone || null,
-      sindico_whatsapp: form.sindico_whatsapp || null, sindico_email: form.sindico_email || null,
+      whatsapp_number: whatsappToStorage(form.whatsapp_number) || null,
+      sindico_name: form.sindico_name || null,
+      sindico_phone: form.sindico_phone || null,
+      sindico_whatsapp: whatsappToStorage(form.sindico_whatsapp) || null,
+      sindico_email: form.sindico_email || null,
     };
     if (editCondo) updateMutation.mutate({ id: editCondo.id, data: payload });
     else createMutation.mutate(payload);
@@ -251,6 +280,12 @@ export default function CondominiumsPage() {
         </div>
 
         {/* List */}
+        {listError && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <AlertCircle size={16} color={ERR} />
+            <span style={{ fontSize: 13, color: ERR, fontWeight: 600 }}>Erro ao carregar condomínios. Verifique sua conexão e recarregue a página.</span>
+          </div>
+        )}
         {isLoading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
             {Array(3).fill(0).map((_, i) => <div key={i} style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, padding: 24, height: 200 }} />)}
@@ -380,14 +415,18 @@ export default function CondominiumsPage() {
                     </div>
 
                     <Field label="WhatsApp do condomínio" hint="receberá chamados dos moradores">
-                      <input
-                        value={form.whatsapp_number}
-                        onChange={sf('whatsapp_number')}
-                        placeholder="5511999999999"
-                        style={inp()}
-                        onFocus={e => e.target.style.borderColor = T}
-                        onBlur={e => e.target.style.borderColor = B}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: T2, pointerEvents: 'none', userSelect: 'none' }}>+55</span>
+                        <input
+                          value={form.whatsapp_number}
+                          onChange={e => setForm(f => ({ ...f, whatsapp_number: formatWhatsapp(e.target.value) }))}
+                          placeholder="(11) 99999-9999"
+                          style={inp({ paddingLeft: 46 })}
+                          onFocus={e => e.target.style.borderColor = T}
+                          onBlur={e => e.target.style.borderColor = B}
+                          maxLength={16}
+                        />
+                      </div>
                     </Field>
 
                     <div style={{ background: L, borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -536,14 +575,18 @@ export default function CondominiumsPage() {
                         />
                       </Field>
                       <Field label="WhatsApp">
+                        <div style={{ position: 'relative' }}>
+                          <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: T2, pointerEvents: 'none', userSelect: 'none' }}>+55</span>
                         <input
                           value={form.sindico_whatsapp}
-                          onChange={sf('sindico_whatsapp')}
-                          placeholder="5511999999999"
-                          style={inp()}
+                          onChange={e => setForm(f => ({ ...f, sindico_whatsapp: formatWhatsapp(e.target.value) }))}
+                          placeholder="(11) 99999-9999"
+                          style={inp({ paddingLeft: 46 })}
                           onFocus={e => e.target.style.borderColor = T}
                           onBlur={e => e.target.style.borderColor = B}
+                          maxLength={16}
                         />
+                        </div>
                       </Field>
                     </div>
                   </>
@@ -635,8 +678,8 @@ function CondoCard({ condo, onEdit, onToggle, inactive }: {
         )}
         {condo.whatsapp_number && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Phone size={12} color={T3} />
-            <span style={{ fontSize: 12, color: T2 }}>{condo.whatsapp_number}</span>
+            <MessageCircle size={12} color={T3} />
+            <span style={{ fontSize: 12, color: T2 }}>+55 {formatWhatsapp(condo.whatsapp_number)}</span>
           </div>
         )}
       </div>
