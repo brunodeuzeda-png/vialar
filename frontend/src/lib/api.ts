@@ -2,7 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '/v1',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -22,7 +22,7 @@ api.interceptors.response.use(
         const refreshToken = Cookies.get('refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
 
-        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, { refreshToken });
+        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || '/v1'}/auth/refresh`, { refreshToken });
         Cookies.set('access_token', data.accessToken, { expires: 1/96 });
         Cookies.set('refresh_token', data.refreshToken, { expires: 30 });
 

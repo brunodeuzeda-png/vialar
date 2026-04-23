@@ -13,7 +13,9 @@ export function useWebSocket(handlers: Record<string, EventHandler> = {}) {
     const token = Cookies.get('access_token');
     if (!token) return;
 
-    const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}/ws?token=${token}`;
+    const wsBase = process.env.NEXT_PUBLIC_WS_URL ||
+      (typeof window !== 'undefined' ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}` : '');
+    const wsUrl = `${wsBase}/ws?token=${token}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

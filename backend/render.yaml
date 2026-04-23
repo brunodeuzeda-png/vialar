@@ -1,12 +1,11 @@
 services:
   - type: web
-    name: vialar-api
+    name: vialar
     env: node
     region: ohio
     plan: free
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: node backend/server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -24,32 +23,13 @@ services:
         sync: false
       - key: FRONTEND_URL
         fromService:
-          name: vialar-frontend
+          name: vialar
           type: web
           property: host
     disk:
       name: wa-sessions
       mountPath: /opt/render/project/src/.wa_sessions
       sizeGB: 1
-
-  - type: web
-    name: vialar-frontend
-    env: node
-    region: ohio
-    plan: free
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: vialar-api
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: NEXT_PUBLIC_WS_URL
-        sync: false
-      - key: PORT
-        value: 3000
 
 databases:
   - name: vialar-db
