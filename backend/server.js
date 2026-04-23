@@ -8,6 +8,8 @@ const { startAll } = require('./src/jobs/scheduler');
 const { restoreSessions } = require('./src/modules/whatsapp/whatsapp.service');
 const { pool } = require('./src/shared/db/pool');
 const logger = require('./src/shared/utils/logger');
+const fs = require('fs');
+const path2 = require('path');
 
 const FRONTEND_DIR = path.join(__dirname, '../frontend');
 
@@ -37,6 +39,35 @@ async function start() {
   } catch (err) {
     logger.fatal({ err }, 'Failed to connect to database');
     process.exit(1);
+  }
+
+  // Auto-run pending migrations on every startup
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS migrations (
+          id SERIAL PRIMARY KEY,
+          filename VARCHAR(255) UNIQUE NOT NULL,
+          applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      const migrationsDir = path2.join(__dirname, 'database/migrations');
+      const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+      for (const file of files) {
+        const { rows } = await client.query('SELECT id FROM migrations WHERE filename = $1', [file]);
+        if (rows.length > 0) continue;
+        const sql = fs.readFileSync(path2.join(migrationsDir, file), 'utf8');
+        await client.query(sql);
+        await client.query('INSERT INTO migrations (filename) VALUES ($1)', [file]);
+        logger.info({ file }, 'Migration applied');
+      }
+      logger.info('Migrations up to date');
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logger.error({ err }, 'Migration error — continuing anyway');
   }
 
   server.listen(env.port, () => {
