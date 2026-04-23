@@ -4,13 +4,14 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, MessageSquare, ShieldCheck, Wrench,
-  DollarSign, MessageCircle, Settings, LogOut, Zap
+  DollarSign, MessageCircle, Settings, LogOut, Zap, Building2
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { useState } from 'react';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/condominiums', label: 'Condomínios', icon: Building2 },
   { href: '/demands', label: 'Chamados', icon: MessageSquare },
   { href: '/compliance', label: 'Compliance', icon: ShieldCheck },
   { href: '/financial', label: 'Financeiro', icon: DollarSign },

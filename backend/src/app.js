@@ -39,6 +39,7 @@ app.use('/v1/ai', require('./modules/ai/ai.routes'));
 app.use('/v1/providers', require('./modules/providers/providers.routes'));
 app.use('/v1/financial', require('./modules/financial/financial.routes'));
 app.use('/v1/compliance', require('./modules/compliance/compliance.routes'));
+app.use('/v1/condominiums', require('./modules/condominiums/condominiums.routes'));
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
