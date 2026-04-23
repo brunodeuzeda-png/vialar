@@ -92,6 +92,7 @@ export default function CondominiumsPage() {
   const [cnpjOk, setCnpjOk] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const numberRef = useRef<HTMLInputElement>(null);
 
   const { data: condos = [], isLoading, error: listError } = useQuery<Condo[]>({
@@ -124,6 +125,16 @@ export default function CondominiumsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['condominiums'] }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/condominiums/${id}`),
+    onSuccess: () => {
+      toast.success('Condomínio excluído');
+      qc.invalidateQueries({ queryKey: ['condominiums'] });
+      closeModal();
+    },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Erro ao excluir'),
+  });
+
   function openCreate() {
     setEditCondo(null); setForm({ ...emptyForm });
     setCnpjError(''); setCnpjOk(false); setCepError('');
@@ -151,7 +162,7 @@ export default function CondominiumsPage() {
 
   function closeModal() {
     setShowModal(false); setEditCondo(null); setForm({ ...emptyForm });
-    setCnpjError(''); setCnpjOk(false); setCepError('');
+    setCnpjError(''); setCnpjOk(false); setCepError(''); setConfirmDelete(false);
   }
 
   function sf(k: keyof typeof emptyForm) {
@@ -235,6 +246,12 @@ export default function CondominiumsPage() {
     transition: 'border-color 0.15s', boxSizing: 'border-box',
     ...extra,
   });
+
+  const tabDone = {
+    geral: !!(form.name.trim()),
+    endereco: !!(form.zip_code || form.city),
+    sindico: !!(form.sindico_name || form.sindico_email),
+  };
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'geral', label: 'Dados gerais' },
@@ -353,17 +370,26 @@ export default function CondominiumsPage() {
 
               {/* Tabs */}
               <div style={{ display: 'flex', gap: 0 }}>
-                {tabs.map(t => (
-                  <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
-                    flex: 1, padding: '10px 0', border: 'none', background: 'none',
-                    fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
-                    color: tab === t.id ? T : T3, cursor: 'pointer',
-                    borderBottom: `2px solid ${tab === t.id ? T : 'transparent'}`,
-                    transition: 'all 0.15s',
-                  }}>
-                    {t.label}
-                  </button>
-                ))}
+                {tabs.map((t, i) => {
+                  const active = tab === t.id;
+                  const done = tabDone[t.id];
+                  return (
+                    <button key={t.id} type="button" onClick={() => { setTab(t.id); setConfirmDelete(false); }} style={{
+                      flex: 1, padding: '10px 0', border: 'none', background: 'none',
+                      fontSize: 13, fontWeight: active ? 700 : 500,
+                      color: active ? T : done ? '#10B981' : T3, cursor: 'pointer',
+                      borderBottom: `2px solid ${active ? T : done ? '#10B981' : 'transparent'}`,
+                      transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}>
+                      {done && !active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', flexShrink: 0, display: 'inline-block' }} />}
+                      {t.label}
+                      {i < tabs.length - 1 && !active && (
+                        <span style={{ fontSize: 11, color: T3, marginLeft: 2, opacity: 0.5 }}>›</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -429,11 +455,27 @@ export default function CondominiumsPage() {
                       </div>
                     </Field>
 
-                    <div style={{ background: L, borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <p style={{ fontSize: 13, color: T2, margin: 0 }}>Preencha o endereço e dados do síndico nas outras abas</p>
-                      <button type="button" onClick={() => setTab('endereco')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: T }}>
-                        Endereço <ArrowRight size={14} />
-                      </button>
+                    {/* Quick-nav to other tabs */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {(['endereco', 'sindico'] as Tab[]).map(t => {
+                        const done = tabDone[t];
+                        const labels: Record<Tab, string> = { geral: '', endereco: 'Endereço', sindico: 'Síndico' };
+                        const hints: Record<Tab, string> = { geral: '', endereco: done ? (form.city || 'Preenchido') : 'Localização do condomínio', sindico: done ? (form.sindico_name || 'Preenchido') : 'Responsável pelo condomínio' };
+                        return (
+                          <button key={t} type="button" onClick={() => setTab(t)} style={{
+                            background: done ? 'rgba(16,185,129,0.06)' : L,
+                            border: `1.5px solid ${done ? '#BBF7D0' : B}`,
+                            borderRadius: 10, padding: '12px 14px', cursor: 'pointer', textAlign: 'left',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          }}>
+                            <div>
+                              <p style={{ fontSize: 12, fontWeight: 700, color: done ? '#10B981' : T2, margin: '0 0 2px' }}>{labels[t]}</p>
+                              <p style={{ fontSize: 11, color: T3, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{hints[t]}</p>
+                            </div>
+                            <ArrowRight size={14} color={done ? '#10B981' : T3} />
+                          </button>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -594,23 +636,62 @@ export default function CondominiumsPage() {
               </div>
 
               {/* Modal footer */}
-              <div style={{ padding: '16px 28px 24px', borderTop: `1px solid ${B}`, display: 'flex', gap: 10 }}>
-                <button type="button" onClick={closeModal} style={{
-                  flex: 1, padding: '11px', background: L, color: T2,
-                  fontWeight: 600, fontSize: 14, borderRadius: 9,
-                  border: `1.5px solid ${B}`, cursor: 'pointer',
-                }}>
-                  Cancelar
-                </button>
-                <button type="submit" disabled={pending} style={{
-                  flex: 2, padding: '11px', background: T, color: S,
-                  fontWeight: 800, fontSize: 14, borderRadius: 9, border: 'none',
-                  cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.7 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
-                  {pending ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Salvando...</> : editCondo ? 'Salvar alterações' : 'Cadastrar condomínio'}
-                </button>
-              </div>
+              {confirmDelete ? (
+                <div style={{ padding: '16px 28px 24px', borderTop: `1.5px solid #FEE2E2`, background: '#FFF5F5' }}>
+                  <p style={{ fontSize: 13, color: ERR, fontWeight: 700, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <AlertCircle size={15} /> Confirmar exclusão de "{editCondo?.name}"?
+                  </p>
+                  <p style={{ fontSize: 12, color: '#B91C1C', margin: '0 0 14px' }}>Esta ação é irreversível. Todos os dados do condomínio serão removidos.</p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" onClick={() => setConfirmDelete(false)} style={{
+                      flex: 1, padding: '10px', background: S, color: T2, fontWeight: 600, fontSize: 13,
+                      borderRadius: 8, border: `1.5px solid ${B}`, cursor: 'pointer',
+                    }}>
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={() => editCondo && deleteMutation.mutate(editCondo.id)}
+                      disabled={deleteMutation.isPending}
+                      style={{
+                        flex: 2, padding: '10px', background: ERR, color: S, fontWeight: 700, fontSize: 13,
+                        borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}>
+                      {deleteMutation.isPending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} />}
+                      Excluir definitivamente
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '16px 28px 24px', borderTop: `1px solid ${B}` }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {editCondo && (
+                      <button type="button" onClick={() => setConfirmDelete(true)} style={{
+                        padding: '11px 14px', background: 'none', color: ERR, fontWeight: 600, fontSize: 13,
+                        borderRadius: 9, border: `1.5px solid #FEE2E2`, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}>
+                        <XCircle size={14} /> Excluir
+                      </button>
+                    )}
+                    <button type="button" onClick={closeModal} style={{
+                      flex: 1, padding: '11px', background: L, color: T2,
+                      fontWeight: 600, fontSize: 14, borderRadius: 9,
+                      border: `1.5px solid ${B}`, cursor: 'pointer',
+                    }}>
+                      Cancelar
+                    </button>
+                    <button type="submit" disabled={pending} style={{
+                      flex: editCondo ? 2 : 3, padding: '11px', background: T, color: S,
+                      fontWeight: 800, fontSize: 14, borderRadius: 9, border: 'none',
+                      cursor: pending ? 'not-allowed' : 'pointer', opacity: pending ? 0.7 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    }}>
+                      {pending
+                        ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Salvando...</>
+                        : editCondo ? 'Salvar alterações' : 'Cadastrar condomínio'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         </div>

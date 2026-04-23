@@ -107,7 +107,7 @@ async function update(id, administradoraId, data) {
 
 async function remove(id, administradoraId) {
   await getOne(id, administradoraId);
-  await query('UPDATE condominiums SET is_active = false WHERE id = $1', [id]);
+  await query('DELETE FROM condominiums WHERE id = $1 AND administradora_id = $2', [id, administradoraId]);
 }
 
 async function updateSindico(id, administradoraId, data) {
