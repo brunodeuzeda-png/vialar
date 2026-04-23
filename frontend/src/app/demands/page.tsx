@@ -1,18 +1,19 @@
 'use client';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { timeAgo } from '@/lib/utils';
 import {
-  cn, STATUS_LABEL, STATUS_COLOR, STATUS_DOT, PRIORITY_COLOR, PRIORITY_LABEL,
-  CATEGORY_LABEL, CATEGORY_ICON, timeAgo
-} from '@/lib/utils';
-import { Plus, Search, Filter, MessageSquare, ChevronRight } from 'lucide-react';
-import { Badge } from '@/components/ui/Badge';
-import { TableRowSkeleton } from '@/components/ui/Skeleton';
-import { EmptyState } from '@/components/ui/EmptyState';
+  Plus, Search, MessageSquare, ChevronRight, Zap,
+  AlertCircle, Clock, CheckCircle2, XCircle, Loader2
+} from 'lucide-react';
 import Header from '@/components/layout/Header';
 import NewDemandModal from '@/components/demands/NewDemandModal';
+
+const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
+const T = '#0A0A0A', T2 = '#666', T3 = '#999';
+const AC = '#BBFF00';
 
 const STATUSES = [
   { value: '', label: 'Todos' },
@@ -25,68 +26,137 @@ const STATUSES = [
 
 const PRIORITIES = ['', 'CRITICA', 'ALTA', 'MEDIA', 'BAIXA'];
 
+const PRIORITY_LABEL: Record<string, string> = {
+  CRITICA: 'Crítica', ALTA: 'Alta', MEDIA: 'Média', BAIXA: 'Baixa',
+};
+
+const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  ABERTA:               { label: 'Aberta',          bg: '#EFF6FF', color: '#1D4ED8', dot: '#3B82F6' },
+  TRIAGEM:              { label: 'Triagem',          bg: '#F5F3FF', color: '#6D28D9', dot: '#8B5CF6' },
+  EM_ANDAMENTO:         { label: 'Em andamento',     bg: '#FFFBEB', color: '#B45309', dot: '#F59E0B' },
+  AGUARDANDO_ORCAMENTO: { label: 'Aguard. orçamento',bg: '#FFF7ED', color: '#C2410C', dot: '#F97316' },
+  AGUARDANDO_APROVACAO: { label: 'Aguard. aprovação',bg: '#FEF9C3', color: '#854D0E', dot: '#EAB308' },
+  AGENDADA:             { label: 'Agendada',         bg: '#F0FDF4', color: '#15803D', dot: '#22C55E' },
+  CONCLUIDA:            { label: 'Concluída',        bg: '#F0FDF4', color: '#166534', dot: '#16A34A' },
+  CANCELADA:            { label: 'Cancelada',        bg: '#F9FAFB', color: '#6B7280', dot: '#9CA3AF' },
+};
+
+const PRIORITY_CONFIG: Record<string, { bg: string; color: string }> = {
+  CRITICA: { bg: '#FEF2F2', color: '#DC2626' },
+  ALTA:    { bg: '#FFF7ED', color: '#EA580C' },
+  MEDIA:   { bg: '#FFFBEB', color: '#D97706' },
+  BAIXA:   { bg: '#F0FDF4', color: '#16A34A' },
+};
+
+const CATEGORY_ICON: Record<string, string> = {
+  MANUTENCAO: '🔧', LIMPEZA: '🧹', SEGURANCA: '🔒', FINANCEIRO: '💰',
+  BARULHO: '🔊', INFRAESTRUTURA: '🏗️', ADMINISTRATIVO: '📋', OUTRO: '📌',
+};
+const CATEGORY_LABEL: Record<string, string> = {
+  MANUTENCAO: 'Manutenção', LIMPEZA: 'Limpeza', SEGURANCA: 'Segurança',
+  FINANCEIRO: 'Financeiro', BARULHO: 'Barulho', INFRAESTRUTURA: 'Infraestrutura',
+  ADMINISTRATIVO: 'Administrativo', OUTRO: 'Outro',
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] || { label: status, bg: '#F9FAFB', color: '#6B7280', dot: '#9CA3AF' };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, background: cfg.bg, fontSize: 12, fontWeight: 600, color: cfg.color }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const cfg = PRIORITY_CONFIG[priority] || { bg: '#F9FAFB', color: '#6B7280' };
+  return (
+    <span style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: 99, background: cfg.bg, fontSize: 12, fontWeight: 600, color: cfg.color }}>
+      {PRIORITY_LABEL[priority] || priority}
+    </span>
+  );
+}
+
 export default function DemandsPage() {
+  const qc = useQueryClient();
   const [filters, setFilters] = useState({ status: '', priority: '', search: '', page: 1 });
   const [showNew, setShowNew] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['demands', filters],
     queryFn: () => api.get('/demands', { params: { ...filters, limit: 15 } }).then(r => r.data),
   });
 
   const set = (key: string, value: string) => setFilters(f => ({ ...f, [key]: value, page: 1 }));
+  const demands = data?.data || [];
+  const pagination = data?.pagination;
+
+  const inp: React.CSSProperties = {
+    padding: '9px 13px', background: S, border: `1.5px solid ${B}`,
+    borderRadius: 8, fontSize: 14, color: T, outline: 'none',
+    fontFamily: 'inherit', transition: 'border-color 0.15s',
+  };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Chamados" />
-      <main className="flex-1 p-6 animate-fade-in">
-        <div className="page-header">
+      <main style={{ padding: '28px 32px' }}>
+
+        {/* Page header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h1 className="page-title">Chamados</h1>
-            <p className="page-subtitle">
-              {data?.pagination?.total ?? '—'} registros encontrados
+            <h1 style={{ fontSize: 26, fontWeight: 900, color: T, letterSpacing: '-0.04em', marginBottom: 4 }}>Chamados</h1>
+            <p style={{ fontSize: 14, color: T2 }}>
+              {pagination?.total ?? '—'} registros encontrados
             </p>
           </div>
-          <button onClick={() => setShowNew(true)} className="btn-primary">
+          <button
+            onClick={() => setShowNew(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px', background: T, color: S, fontWeight: 800, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer' }}
+          >
             <Plus size={16} /> Novo Chamado
           </button>
         </div>
 
         {/* Status tabs */}
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit mb-5">
-          {STATUSES.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => set('status', value)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
-                filters.status === value
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              )}
-            >
-              {label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: 4, background: S, border: `1px solid ${B}`, borderRadius: 10, padding: 4, width: 'fit-content', marginBottom: 20 }}>
+          {STATUSES.map(({ value, label }) => {
+            const active = filters.status === value;
+            return (
+              <button key={value} onClick={() => set('status', value)} style={{
+                padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: active ? 700 : 500,
+                background: active ? T : 'transparent',
+                color: active ? S : T2,
+                transition: 'all 0.15s',
+              }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search + filters */}
-        <div className="flex gap-3 mb-5">
-          <div className="relative flex-1 max-w-sm">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Search + filter */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T3 }} />
             <input
-              className="input pl-9"
+              style={{ ...inp, width: '100%', paddingLeft: 36, boxSizing: 'border-box' }}
               placeholder="Buscar chamados..."
               value={filters.search}
               onChange={e => set('search', e.target.value)}
+              onFocus={e => (e.target.style.borderColor = T)}
+              onBlur={e => (e.target.style.borderColor = B)}
             />
           </div>
           <select
-            className="input w-36"
+            style={{ ...inp, cursor: 'pointer', minWidth: 150 }}
             value={filters.priority}
             onChange={e => set('priority', e.target.value)}
+            onFocus={e => (e.target.style.borderColor = T)}
+            onBlur={e => (e.target.style.borderColor = B)}
           >
-            <option value="">Prioridade</option>
+            <option value="">Todas prioridades</option>
             {PRIORITIES.filter(Boolean).map(p => (
               <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
             ))}
@@ -94,77 +164,82 @@ export default function DemandsPage() {
         </div>
 
         {/* Table */}
-        <div className="table-container">
-          <table className="table">
+        <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th>Chamado</th>
-                <th>Status</th>
-                <th>Prioridade</th>
-                <th>Categoria</th>
-                <th>Aberto</th>
-                <th />
+              <tr style={{ borderBottom: `1px solid ${B}` }}>
+                {['CHAMADO', 'STATUS', 'PRIORIDADE', 'CATEGORIA', 'ABERTO EM', ''].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.06em', background: '#FAFAF8' }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {isLoading && Array(8).fill(0).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+              {isLoading && Array(6).fill(0).map((_, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${B}` }}>
+                  {Array(6).fill(0).map((_, j) => (
+                    <td key={j} style={{ padding: '14px 16px' }}>
+                      <div style={{ height: 14, background: '#F0F0EE', borderRadius: 4, width: j === 0 ? 180 : 80 }} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
 
-              {!isLoading && data?.data?.map((d: any) => (
-                <tr key={d.id} className="group cursor-pointer" onClick={() => {}}>
-                  <td>
-                    <Link href={`/demands/${d.id}`} className="block">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-base flex-shrink-0">
-                          {CATEGORY_ICON[d.category] || '📌'}
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
-                            {d.title}
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {d.requester_name} {d.unit_identifier && `· Apt ${d.unit_identifier}`}
-                          </p>
-                        </div>
+              {!isLoading && demands.map((d: any) => (
+                <tr key={d.id} style={{ borderBottom: `1px solid ${B}`, transition: 'background 0.1s', cursor: 'pointer' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF8')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <td style={{ padding: '14px 16px' }}>
+                    <Link href={`/demands/${d.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, background: L, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                        {CATEGORY_ICON[d.category] || '📌'}
                       </div>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: T, margin: '0 0 2px', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {d.title}
+                        </p>
+                        <p style={{ fontSize: 12, color: T3, margin: 0 }}>
+                          {d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}
+                        </p>
+                      </div>
+                      {d.ai_triage_data && (
+                        <span style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 3, background: AC + '20', borderRadius: 6, padding: '2px 7px', fontSize: 11, color: '#5A7A00', fontWeight: 600 }}>
+                          <Zap size={10} /> IA
+                        </span>
+                      )}
                     </Link>
                   </td>
-                  <td>
-                    <Badge className={STATUS_COLOR[d.status]} dot={STATUS_DOT[d.status]}>
-                      {STATUS_LABEL[d.status]}
-                    </Badge>
-                  </td>
-                  <td>
-                    <Badge className={PRIORITY_COLOR[d.priority]}>
-                      {PRIORITY_LABEL[d.priority]}
-                    </Badge>
-                  </td>
-                  <td>
-                    <span className="text-sm text-slate-500">
+                  <td style={{ padding: '14px 16px' }}><StatusBadge status={d.status} /></td>
+                  <td style={{ padding: '14px 16px' }}><PriorityBadge priority={d.priority} /></td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <span style={{ fontSize: 13, color: T2 }}>
                       {CATEGORY_ICON[d.category]} {CATEGORY_LABEL[d.category]}
                     </span>
                   </td>
-                  <td className="text-xs text-slate-400">{timeAgo(d.created_at)}</td>
-                  <td>
+                  <td style={{ padding: '14px 16px', fontSize: 12, color: T3, whiteSpace: 'nowrap' }}>{timeAgo(d.created_at)}</td>
+                  <td style={{ padding: '14px 16px' }}>
                     <Link href={`/demands/${d.id}`}>
-                      <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                      <ChevronRight size={16} color={T3} />
                     </Link>
                   </td>
                 </tr>
               ))}
 
-              {!isLoading && !data?.data?.length && (
+              {!isLoading && demands.length === 0 && (
                 <tr>
                   <td colSpan={6}>
-                    <EmptyState
-                      icon={<MessageSquare size={28} />}
-                      title="Nenhum chamado encontrado"
-                      description="Quando moradores abrirem chamados, eles aparecerão aqui."
-                      action={
-                        <button onClick={() => setShowNew(true)} className="btn-primary btn-sm">
-                          <Plus size={14} /> Criar chamado
-                        </button>
-                      }
-                    />
+                    <div style={{ textAlign: 'center', padding: '60px 32px' }}>
+                      <div style={{ width: 48, height: 48, background: L, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <MessageSquare size={22} color={T3} />
+                      </div>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: T, marginBottom: 6 }}>Nenhum chamado encontrado</p>
+                      <p style={{ fontSize: 14, color: T3, marginBottom: 20 }}>Quando moradores abrirem chamados, eles aparecerão aqui.</p>
+                      <button onClick={() => setShowNew(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: T, color: S, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        <Plus size={14} /> Criar chamado
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -172,33 +247,36 @@ export default function DemandsPage() {
           </table>
 
           {/* Pagination */}
-          {data?.pagination && data.pagination.pages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-50">
-              <p className="text-xs text-slate-400">
-                Página {data.pagination.page} de {data.pagination.pages} · {data.pagination.total} registros
+          {pagination && pagination.pages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: `1px solid ${B}` }}>
+              <p style={{ fontSize: 12, color: T3 }}>
+                Página {pagination.page} de {pagination.pages} · {pagination.total} registros
               </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
-                  disabled={filters.page === 1}
-                  className="btn-secondary btn-sm"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
-                  disabled={filters.page === data.pagination.pages}
-                  className="btn-secondary btn-sm"
-                >
-                  Próxima
-                </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { label: 'Anterior', disabled: filters.page === 1, onClick: () => setFilters(f => ({ ...f, page: f.page - 1 })) },
+                  { label: 'Próxima', disabled: filters.page === pagination.pages, onClick: () => setFilters(f => ({ ...f, page: f.page + 1 })) },
+                ].map(btn => (
+                  <button key={btn.label} onClick={btn.onClick} disabled={btn.disabled} style={{
+                    padding: '7px 14px', border: `1.5px solid ${B}`, borderRadius: 8, background: S,
+                    fontSize: 13, fontWeight: 600, color: btn.disabled ? T3 : T, cursor: btn.disabled ? 'default' : 'pointer',
+                    opacity: btn.disabled ? 0.5 : 1,
+                  }}>
+                    {btn.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </div>
       </main>
 
-      {showNew && <NewDemandModal onClose={() => setShowNew(false)} onSuccess={() => { setShowNew(false); refetch(); }} />}
+      {showNew && (
+        <NewDemandModal
+          onClose={() => setShowNew(false)}
+          onSuccess={() => { setShowNew(false); qc.invalidateQueries({ queryKey: ['demands'] }); }}
+        />
+      )}
     </div>
   );
 }

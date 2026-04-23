@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { X, Plus } from 'lucide-react';
-import { Spinner } from '@/components/ui/Spinner';
+import { X, Plus, Loader2 } from 'lucide-react';
+
+const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
+const T = '#0A0A0A', T2 = '#666', T3 = '#999';
 
 const CATEGORIES = [
   { value: 'MANUTENCAO', label: '🔧 Manutenção' },
@@ -17,10 +19,10 @@ const CATEGORIES = [
 ];
 
 const PRIORITIES = [
-  { value: 'BAIXA', label: 'Baixa', color: 'text-green-600' },
-  { value: 'MEDIA', label: 'Média', color: 'text-yellow-600' },
-  { value: 'ALTA', label: 'Alta', color: 'text-orange-600' },
-  { value: 'CRITICA', label: 'Crítica', color: 'text-red-600' },
+  { value: 'BAIXA', label: 'Baixa' },
+  { value: 'MEDIA', label: 'Média' },
+  { value: 'ALTA', label: 'Alta' },
+  { value: 'CRITICA', label: 'Crítica' },
 ];
 
 interface Props {
@@ -35,6 +37,13 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '10px 13px', background: S,
+    border: `1.5px solid ${B}`, borderRadius: 8, fontSize: 14,
+    color: T, outline: 'none', fontFamily: 'inherit',
+    boxSizing: 'border-box' as const, transition: 'border-color 0.15s',
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,61 +64,91 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-slide-up">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={onClose} />
+      <div style={{ position: 'relative', background: S, borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', width: '100%', maxWidth: 520 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${B}` }}>
           <div>
-            <h2 className="font-bold text-slate-900">Novo Chamado</h2>
-            <p className="text-xs text-slate-400 mt-0.5">A IA irá classificar automaticamente</p>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: T, margin: 0 }}>Novo Chamado</h2>
+            <p style={{ fontSize: 12, color: T3, margin: '2px 0 0' }}>A IA irá classificar automaticamente</p>
           </div>
-          <button onClick={onClose} className="btn-ghost p-2 rounded-xl">
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: T3, display: 'flex', alignItems: 'center' }}>
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="field">
-            <label className="label">Título</label>
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>TÍTULO</label>
             <input
-              className="input"
+              style={inp}
               placeholder="Ex: Vazamento na área da piscina"
               value={form.title}
               onChange={e => set('title', e.target.value)}
+              onFocus={e => (e.target.style.borderColor = T)}
+              onBlur={e => (e.target.style.borderColor = B)}
               required
             />
           </div>
 
-          <div className="field">
-            <label className="label">Descrição</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>DESCRIÇÃO</label>
             <textarea
-              className="input min-h-[100px] resize-none"
+              style={{ ...inp, minHeight: 100, resize: 'none' }}
               placeholder="Descreva o problema com detalhes..."
               value={form.description}
               onChange={e => set('description', e.target.value)}
+              onFocus={e => (e.target.style.borderColor = T)}
+              onBlur={e => (e.target.style.borderColor = B)}
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="field">
-              <label className="label">Categoria</label>
-              <select className="input" value={form.category} onChange={e => set('category', e.target.value)}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>CATEGORIA</label>
+              <select
+                style={{ ...inp, cursor: 'pointer' }}
+                value={form.category}
+                onChange={e => set('category', e.target.value)}
+                onFocus={e => (e.target.style.borderColor = T)}
+                onBlur={e => (e.target.style.borderColor = B)}
+              >
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
-            <div className="field">
-              <label className="label">Prioridade</label>
-              <select className="input" value={form.priority} onChange={e => set('priority', e.target.value)}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>PRIORIDADE</label>
+              <select
+                style={{ ...inp, cursor: 'pointer' }}
+                value={form.priority}
+                onChange={e => set('priority', e.target.value)}
+                onFocus={e => (e.target.style.borderColor = T)}
+                onBlur={e => (e.target.style.borderColor = B)}
+              >
                 {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancelar</button>
-            <button type="submit" disabled={loading} className="btn-primary flex-1">
-              {loading ? <Spinner size="sm" className="text-white" /> : <><Plus size={16} /> Abrir Chamado</>}
+          <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ flex: 1, padding: '11px 0', background: L, border: `1.5px solid ${B}`, borderRadius: 9, fontSize: 14, fontWeight: 700, color: T2, cursor: 'pointer' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ flex: 1, padding: '11px 0', background: T, border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, color: S, cursor: loading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <><Plus size={15} /> Abrir Chamado</>}
             </button>
           </div>
         </form>
