@@ -174,7 +174,7 @@ export default function LoginPage() {
           <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>
             Não tem conta?{' '}
             <a href="/register" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
-              Cadastre seu condomínio
+              Cadastre sua administradora
             </a>
           </p>
         </div>
