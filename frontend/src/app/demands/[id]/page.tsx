@@ -323,21 +323,39 @@ export default function DemandDetailPage() {
                   </p>
                 )}
 
-                {/* Routing highlight */}
-                {demand.assigned_setor && (
-                  <div style={{ marginBottom: 14, padding: '14px 16px', background: S, borderRadius: 10, border: `2px solid #3B82F630`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, background: '#EFF6FF', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Users size={16} color="#3B82F6" />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 11, color: T3, margin: '0 0 2px', fontWeight: 600, letterSpacing: '0.04em' }}>ENCAMINHADO PARA</p>
-                      <p style={{ fontSize: 15, fontWeight: 800, color: T, margin: 0 }}>{demand.assigned_setor}</p>
+                {/* Routing highlight — multi-sector */}
+                {(demand.assigned_setores?.length > 0 || demand.assigned_setor) && (() => {
+                  const setores: string[] = demand.assigned_setores?.length
+                    ? demand.assigned_setores
+                    : [demand.assigned_setor];
+                  return (
+                    <div style={{ marginBottom: 14, padding: '14px 16px', background: S, borderRadius: 10, border: `2px solid #3B82F630` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: setores.length > 1 ? 10 : 0 }}>
+                        <div style={{ width: 32, height: 32, background: '#EFF6FF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Users size={15} color="#3B82F6" />
+                        </div>
+                        <p style={{ fontSize: 11, color: T3, margin: 0, fontWeight: 700, letterSpacing: '0.05em' }}>
+                          {setores.length > 1 ? 'SETORES ENVOLVIDOS' : 'ENCAMINHADO PARA'}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: demand.routing_data?.justificativa ? 8 : 0 }}>
+                        {setores.map((s, i) => (
+                          <span key={s} style={{
+                            padding: '4px 12px', borderRadius: 99, fontSize: 13, fontWeight: 700,
+                            background: i === 0 ? '#3B82F6' : '#EFF6FF',
+                            color: i === 0 ? '#fff' : '#1D4ED8',
+                            border: i === 0 ? 'none' : '1px solid #BFDBFE',
+                          }}>
+                            {i === 0 && setores.length > 1 ? `★ ${s}` : s}
+                          </span>
+                        ))}
+                      </div>
                       {demand.routing_data?.justificativa && (
-                        <p style={{ fontSize: 12, color: T2, margin: '3px 0 0' }}>{demand.routing_data.justificativa}</p>
+                        <p style={{ fontSize: 12, color: T2, margin: 0, lineHeight: 1.5 }}>{demand.routing_data.justificativa}</p>
                       )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Triage metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
@@ -452,7 +470,7 @@ export default function DemandDetailPage() {
                   { icon: <Calendar size={13} />, label: 'Aberto em', value: demand.created_at ? new Date(demand.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null },
                   { icon: <Clock size={13} />, label: 'Atualizado', value: demand.updated_at ? timeAgo(demand.updated_at) : null },
                   { icon: <User size={13} />, label: 'Responsável', value: demand.assigned_name },
-                  { icon: <Tag size={13} />, label: 'Setor', value: demand.assigned_setor },
+                  { icon: <Tag size={13} />, label: 'Setor', value: demand.assigned_setores?.length > 1 ? demand.assigned_setores.join(', ') : demand.assigned_setor },
                   { icon: <MessageSquare size={13} />, label: 'Origem', value: demand.origin === 'WHATSAPP' ? '💬 WhatsApp' : demand.origin === 'PORTAL' ? '🌐 Portal' : demand.origin },
                 ].filter(item => item.value).map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>

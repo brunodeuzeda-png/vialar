@@ -105,11 +105,13 @@ Se não for uma demanda/chamado (ex: saudação, pergunta simples), retorne is_d
 `;
 
 const ROUTING_SYSTEM = `Você é um sistema de roteamento de chamados condominiais.
-Com base no conteúdo do chamado e nos setores disponíveis, determine para qual setor da administradora o chamado deve ser encaminhado.
+Com base no conteúdo do chamado e nos setores disponíveis, determine quais setores da administradora devem ser envolvidos.
+Um chamado pode envolver mais de um setor quando necessário.
 Responda APENAS em JSON válido, sem markdown.`;
 
 const ROUTING_USER = (demand, setores) => `
-Analise este chamado e indique o setor responsável pelo atendimento.
+Analise este chamado e indique todos os setores responsáveis pelo atendimento.
+Pode ser 1 ou mais setores quando o chamado envolve áreas distintas (ex: Manutenção + Financeiro para uma obra que precisa de orçamento aprovado).
 
 Setores disponíveis: ${setores.join(', ')}
 
@@ -121,10 +123,13 @@ Prioridade: ${demand.priority}
 
 Retorne JSON:
 {
-  "assigned_setor": "nome exato de um dos setores disponíveis",
-  "justificativa": "motivo da escolha em uma frase",
+  "assigned_setores": ["setor principal", "setor secundário se necessário"],
+  "setor_principal": "nome do setor mais responsável (deve estar em assigned_setores)",
+  "justificativa": "motivo da escolha em 1-2 frases explicando o envolvimento de cada setor",
   "notificar_sindico": true|false
 }
+
+Importante: os nomes dos setores devem ser exatamente iguais aos disponíveis na lista.
 `;
 
 module.exports = {

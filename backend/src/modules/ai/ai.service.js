@@ -106,14 +106,26 @@ async function routeDemandToSetor(demand, setores) {
       condominiumId: demand.condominium_id,
       demandId: demand.id,
       interactionType: 'ROUTING',
-      maxTokens: 256,
+      maxTokens: 400,
     });
     const result = JSON.parse(raw);
-    if (result.assigned_setor && setores.includes(result.assigned_setor)) {
+
+    // Support both legacy single setor and new multi-setor format
+    const validSetores = (result.assigned_setores || (result.assigned_setor ? [result.assigned_setor] : []))
+      .filter(s => setores.includes(s));
+    const principal = result.setor_principal || validSetores[0] || null;
+
+    if (validSetores.length > 0) {
       await query(
-        `UPDATE demands SET assigned_setor = $1, routing_data = $2 WHERE id = $3`,
-        [result.assigned_setor, JSON.stringify(result), demand.id]
+        `UPDATE demands
+           SET assigned_setor   = $1,
+               assigned_setores = $2,
+               routing_data     = $3
+         WHERE id = $4`,
+        [principal, validSetores, JSON.stringify({ ...result, assigned_setores: validSetores }), demand.id]
       );
+      result.assigned_setores = validSetores;
+      result.assigned_setor   = principal;
     }
     return result;
   } catch (err) {

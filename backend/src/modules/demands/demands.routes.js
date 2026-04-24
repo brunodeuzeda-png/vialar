@@ -35,7 +35,11 @@ router.post('/', isAnyRole, async (req, res, next) => {
           { ...demand, category: triage?.category || demand.category, priority: triage?.priority || demand.priority },
           setores.length ? setores : ['Manutenção','Financeiro','Jurídico','Atendimento','Obras e Reformas','Segurança','Administrativo','TI']
         );
-        if (routing) emitToCondominium(req.tenant.id, 'demand:routed', { id: demand.id, setor: routing.assigned_setor });
+        if (routing) emitToCondominium(req.tenant.id, 'demand:routed', {
+          id: demand.id,
+          setor: routing.assigned_setor,
+          setores: routing.assigned_setores || [routing.assigned_setor].filter(Boolean),
+        });
       }
     }).catch(() => {});
 
@@ -46,14 +50,22 @@ router.post('/', isAnyRole, async (req, res, next) => {
 router.get('/stats/by-setor', isAnyRole, async (req, res, next) => {
   try {
     const { rows } = await require('../../shared/db/pool').query(
-      `SELECT assigned_setor,
-         COUNT(*) FILTER (WHERE status NOT IN ('CONCLUIDA','CANCELADA')) AS open,
-         COUNT(*) FILTER (WHERE status = 'CONCLUIDA') AS done,
-         COUNT(*) FILTER (WHERE priority = 'CRITICA' AND status NOT IN ('CONCLUIDA','CANCELADA')) AS critical,
+      `SELECT s.setor AS assigned_setor,
+         COUNT(*) FILTER (WHERE d.status NOT IN ('CONCLUIDA','CANCELADA')) AS open,
+         COUNT(*) FILTER (WHERE d.status = 'CONCLUIDA') AS done,
+         COUNT(*) FILTER (WHERE d.priority = 'CRITICA' AND d.status NOT IN ('CONCLUIDA','CANCELADA')) AS critical,
          COUNT(*) AS total
-       FROM demands
-       WHERE condominium_id = $1 AND assigned_setor IS NOT NULL
-       GROUP BY assigned_setor`,
+       FROM demands d,
+            LATERAL unnest(
+              CASE WHEN d.assigned_setores IS NOT NULL AND array_length(d.assigned_setores,1) > 0
+                   THEN d.assigned_setores
+                   WHEN d.assigned_setor IS NOT NULL
+                   THEN ARRAY[d.assigned_setor]
+                   ELSE '{}'::text[]
+              END
+            ) AS s(setor)
+       WHERE d.condominium_id = $1
+       GROUP BY s.setor`,
       [req.tenant.id]
     );
     res.json(rows);
@@ -96,8 +108,12 @@ router.post('/:id/ai/triage', isSindico, async (req, res, next) => {
         { ...demand, category: triage.category || demand.category, priority: triage.priority || demand.priority },
         setores.length ? setores : ['Manutenção','Financeiro','Jurídico','Atendimento','Obras e Reformas','Segurança','Administrativo','TI']
       );
-      if (routing?.assigned_setor) {
-        emitToCondominium(req.tenant.id, 'demand:routed', { id: demand.id, setor: routing.assigned_setor });
+      if (routing?.assigned_setor || routing?.assigned_setores?.length) {
+        emitToCondominium(req.tenant.id, 'demand:routed', {
+          id: demand.id,
+          setor: routing.assigned_setor,
+          setores: routing.assigned_setores || [routing.assigned_setor].filter(Boolean),
+        });
         triage._routing = routing;
       }
     }
