@@ -56,6 +56,8 @@ const UPDATE = `
     ai_summary = COALESCE($8, ai_summary),
     internal_notes = COALESCE($9, internal_notes),
     due_date = COALESCE($10, due_date),
+    assigned_setor = COALESCE($13, assigned_setor),
+    assigned_setores = COALESCE($14, assigned_setores),
     resolved_at = CASE WHEN $3 = 'CONCLUIDA' THEN NOW() ELSE resolved_at END,
     updated_at = NOW()
   WHERE id = $11 AND condominium_id = $12

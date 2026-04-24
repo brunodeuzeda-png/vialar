@@ -101,16 +101,34 @@ async function update(id, condominiumId, data, userId) {
       throw err;
     }
 
+    const newSetores = data.assigned_setores || null;
+    const newSetor = data.assigned_setor || (newSetores?.length ? newSetores[0] : null);
+
     const { rows: [updated] } = await client.query(Q.UPDATE, [
       data.title, data.description, data.status, data.priority, data.category,
       data.assigned_to_id, data.ai_triage_data, data.ai_summary,
       data.internal_notes, data.due_date, id, condominiumId,
+      newSetor, newSetores,
     ]);
 
     if (data.status && data.status !== old.status) {
       await client.query(Q.INSERT_UPDATE, [
         id, userId, 'STATUS_CHANGE',
         `Status alterado para ${data.status}`, old.status, data.status, null,
+      ]);
+    }
+    if (newSetores && JSON.stringify(newSetores.sort()) !== JSON.stringify((old.assigned_setores || []).sort())) {
+      const oldVal = (old.assigned_setores?.length ? old.assigned_setores : [old.assigned_setor].filter(Boolean)).join(', ') || '—';
+      const newVal = newSetores.join(', ');
+      await client.query(Q.INSERT_UPDATE, [
+        id, userId, 'SETOR_CHANGE',
+        `Setores: ${oldVal} → ${newVal}`, oldVal, newVal, null,
+      ]);
+    }
+    if (data.priority && data.priority !== old.priority) {
+      await client.query(Q.INSERT_UPDATE, [
+        id, userId, 'PRIORITY_CHANGE',
+        `Prioridade: ${old.priority} → ${data.priority}`, old.priority, data.priority, null,
       ]);
     }
     if (data.comment) {

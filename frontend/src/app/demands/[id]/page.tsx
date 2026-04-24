@@ -10,6 +10,7 @@ import {
   ArrowLeft, Zap, MessageSquare, User, Home,
   Send, Loader2, RefreshCw, Tag, Calendar,
   Clock, AlertCircle, CheckCircle2, XCircle, Users,
+  Settings2, Plus, X as XIcon, ChevronDown,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 
@@ -62,10 +63,18 @@ export default function DemandDetailPage() {
 
   const [comment, setComment] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+  const [addingSetor, setAddingSetor] = useState(false);
 
   const { data: demand, isLoading } = useQuery({
     queryKey: ['demand', id, condoId],
     queryFn: () => api.get(`/demands/${id}`, { params: { condominium_id: condoId } }).then(r => r.data),
+    enabled: !!condoId,
+  });
+
+  const { data: setoresDisponiveis = [] } = useQuery<string[]>({
+    queryKey: ['setores-names'],
+    queryFn: () => api.get('/setores').then(r => r.data.filter((s: any) => s.is_active).map((s: any) => s.name)),
     enabled: !!condoId,
   });
 
@@ -404,12 +413,25 @@ export default function DemandDetailPage() {
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {updates.map((u: any, idx: number) => {
                   const isStatus = u.type === 'STATUS_CHANGE';
+                  const isSetor = u.type === 'SETOR_CHANGE';
+                  const isPriority = u.type === 'PRIORITY_CHANGE';
+                  const isSystem = isStatus || isSetor || isPriority;
                   const isLast = idx === updates.length - 1;
+
+                  const dotBg = isStatus ? T : isSetor ? '#3B82F6' : isPriority ? '#F59E0B' : '#EFF6FF';
+                  const dotIcon = isStatus
+                    ? <CheckCircle2 size={13} color={S} />
+                    : isSetor
+                      ? <Users size={12} color={S} />
+                      : isPriority
+                        ? <AlertCircle size={12} color={S} />
+                        : <MessageSquare size={12} color={T3} />;
+
                   return (
                     <div key={u.id} style={{ display: 'flex', gap: 12 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: isStatus ? T : '#EFF6FF', border: `2px solid ${isStatus ? T : B}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {isStatus ? <CheckCircle2 size={13} color={S} /> : <MessageSquare size={12} color={T3} />}
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: dotBg, border: `2px solid ${dotBg}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {dotIcon}
                         </div>
                         {!isLast && <div style={{ width: 2, flex: 1, background: B, minHeight: 16, margin: '4px 0' }} />}
                       </div>
@@ -426,6 +448,12 @@ export default function DemandDetailPage() {
                             <strong style={{ color: PIPELINE.find(p => p.status === u.new_value)?.color || T }}>
                               {PIPELINE.find(p => p.status === u.new_value)?.label || u.new_value}
                             </strong>
+                          </p>
+                        ) : isSystem && u.old_value && u.new_value ? (
+                          <p style={{ fontSize: 12, color: T2, margin: 0 }}>
+                            <span style={{ textDecoration: 'line-through', color: T3 }}>{u.old_value}</span>
+                            {' → '}
+                            <strong style={{ color: T }}>{u.new_value}</strong>
                           </p>
                         ) : (
                           <p style={{ fontSize: 13, color: T, margin: 0, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{u.content}</p>
@@ -458,7 +486,113 @@ export default function DemandDetailPage() {
           </div>
 
           {/* Right sidebar */}
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Config panel */}
+            <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+              <button
+                onClick={() => setShowConfig(v => !v)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Settings2 size={14} color={T2} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em' }}>CONFIGURAÇÕES</span>
+                </div>
+                <ChevronDown size={14} color={T3} style={{ transform: showConfig ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+
+              {showConfig && (
+                <div style={{ padding: '0 18px 18px', borderTop: `1px solid ${B}`, paddingTop: 16 }}>
+
+                  {/* Priority */}
+                  <div style={{ marginBottom: 18 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.05em', margin: '0 0 8px' }}>PRIORIDADE</p>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                        <button key={key} onClick={() => updateMutation.mutate({ priority: key })}
+                          style={{
+                            padding: '5px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '2px solid',
+                            background: demand.priority === key ? cfg.color : 'transparent',
+                            color: demand.priority === key ? S : cfg.color,
+                            borderColor: cfg.color,
+                            opacity: updateMutation.isPending ? 0.6 : 1,
+                          }}>
+                          {cfg.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sectors */}
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.05em', margin: '0 0 8px' }}>SETORES RESPONSÁVEIS</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                      {(() => {
+                        const current: string[] = demand.assigned_setores?.length ? demand.assigned_setores : demand.assigned_setor ? [demand.assigned_setor] : [];
+                        return current.map((s: string, i: number) => (
+                          <span key={s} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5,
+                            padding: '4px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+                            background: i === 0 ? '#EFF6FF' : L, color: i === 0 ? '#1D4ED8' : T2,
+                            border: `1.5px solid ${i === 0 ? '#BFDBFE' : B}`,
+                          }}>
+                            {i === 0 && <span style={{ fontSize: 9 }}>★</span>}{s}
+                            <button onClick={() => {
+                              const next = current.filter(x => x !== s);
+                              updateMutation.mutate({ assigned_setores: next, assigned_setor: next[0] || null });
+                            }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: T3 }}>
+                              <XIcon size={11} />
+                            </button>
+                          </span>
+                        ));
+                      })()}
+                    </div>
+
+                    {/* Add sector */}
+                    {!addingSetor ? (
+                      <button onClick={() => setAddingSetor(true)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', background: 'none', border: `1.5px dashed ${B}`, borderRadius: 99, fontSize: 12, color: T3, cursor: 'pointer', fontWeight: 600 }}>
+                        <Plus size={11} /> Adicionar setor
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <select
+                          autoFocus
+                          onChange={e => {
+                            if (!e.target.value) return;
+                            const current: string[] = demand.assigned_setores?.length ? demand.assigned_setores : demand.assigned_setor ? [demand.assigned_setor] : [];
+                            if (!current.includes(e.target.value)) {
+                              const next = [...current, e.target.value];
+                              updateMutation.mutate({ assigned_setores: next, assigned_setor: current[0] || e.target.value });
+                            }
+                            setAddingSetor(false);
+                          }}
+                          style={{ flex: 1, padding: '6px 10px', border: `1.5px solid ${B}`, borderRadius: 8, fontSize: 12, background: S, color: T, outline: 'none' }}
+                        >
+                          <option value="">Selecionar setor...</option>
+                          {setoresDisponiveis
+                            .filter((s: string) => !(demand.assigned_setores?.includes(s) || demand.assigned_setor === s))
+                            .map((s: string) => <option key={s} value={s}>{s}</option>)
+                          }
+                        </select>
+                        <button onClick={() => setAddingSetor(false)} style={{ padding: '6px 8px', background: 'none', border: `1.5px solid ${B}`, borderRadius: 8, cursor: 'pointer', color: T3 }}>
+                          <XIcon size={12} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Rerun AI routing */}
+                    <button onClick={handleAITriage} disabled={aiLoading}
+                      style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: AC + '20', border: `1px solid ${AC}60`, borderRadius: 8, fontSize: 11, fontWeight: 700, color: '#5A7A00', cursor: 'pointer', width: '100%', justifyContent: 'center' }}>
+                      {aiLoading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={11} />}
+                      Rerrotear com IA
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Details */}
             <div style={card}>
               <h3 style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em', margin: '0 0 14px' }}>DETALHES</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -470,7 +604,6 @@ export default function DemandDetailPage() {
                   { icon: <Calendar size={13} />, label: 'Aberto em', value: demand.created_at ? new Date(demand.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null },
                   { icon: <Clock size={13} />, label: 'Atualizado', value: demand.updated_at ? timeAgo(demand.updated_at) : null },
                   { icon: <User size={13} />, label: 'Responsável', value: demand.assigned_name },
-                  { icon: <Tag size={13} />, label: 'Setor', value: demand.assigned_setores?.length > 1 ? demand.assigned_setores.join(', ') : demand.assigned_setor },
                   { icon: <MessageSquare size={13} />, label: 'Origem', value: demand.origin === 'WHATSAPP' ? '💬 WhatsApp' : demand.origin === 'PORTAL' ? '🌐 Portal' : demand.origin },
                 ].filter(item => item.value).map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
