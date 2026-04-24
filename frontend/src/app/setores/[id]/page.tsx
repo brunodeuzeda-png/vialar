@@ -10,24 +10,28 @@ import Header from '@/components/layout/Header';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Users, CheckCircle2, ChevronRight, RefreshCw,
-  Activity, Zap, Flame, CircleDot, Clock,
+  Activity, Zap, Flame, CircleDot, Clock, TrendingUp,
 } from 'lucide-react';
 
+const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
+const T = '#0A0A0A', T2 = '#666', T3 = '#999';
+const AC = '#BBFF00';
+
 const PIPELINE = [
-  { status: 'ABERTA',               label: 'Aberta',      color: '#3B82F6' },
-  { status: 'TRIAGEM',              label: 'Triagem',     color: '#8B5CF6' },
-  { status: 'EM_ANDAMENTO',         label: 'Andamento',   color: '#F59E0B' },
-  { status: 'AGUARDANDO_ORCAMENTO', label: 'Orçamento',   color: '#F97316' },
-  { status: 'AGUARDANDO_APROVACAO', label: 'Aprovação',   color: '#EAB308' },
-  { status: 'AGENDADA',             label: 'Agendada',    color: '#22C55E' },
-  { status: 'CONCLUIDA',            label: 'Concluída',   color: '#16A34A' },
+  { status: 'ABERTA',               label: 'Aberta',     color: '#3B82F6' },
+  { status: 'TRIAGEM',              label: 'Triagem',    color: '#8B5CF6' },
+  { status: 'EM_ANDAMENTO',         label: 'Andamento',  color: '#F59E0B' },
+  { status: 'AGUARDANDO_ORCAMENTO', label: 'Orçamento',  color: '#F97316' },
+  { status: 'AGUARDANDO_APROVACAO', label: 'Aprovação',  color: '#EAB308' },
+  { status: 'AGENDADA',             label: 'Agendada',   color: '#22C55E' },
+  { status: 'CONCLUIDA',            label: 'Concluída',  color: '#16A34A' },
 ];
 
-const PRIO: Record<string, { label: string; color: string }> = {
-  CRITICA: { label: 'Crítica', color: '#EF4444' },
-  ALTA:    { label: 'Alta',    color: '#F97316' },
-  MEDIA:   { label: 'Média',   color: '#EAB308' },
-  BAIXA:   { label: 'Baixa',   color: '#22C55E' },
+const PRIO: Record<string, { label: string; color: string; bg: string }> = {
+  CRITICA: { label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' },
+  ALTA:    { label: 'Alta',    color: '#EA580C', bg: '#FFF7ED' },
+  MEDIA:   { label: 'Média',   color: '#D97706', bg: '#FFFBEB' },
+  BAIXA:   { label: 'Baixa',   color: '#16A34A', bg: '#F0FDF4' },
 };
 
 export default function SetorDashboard() {
@@ -79,11 +83,11 @@ export default function SetorDashboard() {
   }, [dataUpdatedAt]);
 
   if (!setor) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Setor" />
-      <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {[120, 80, 400].map(h => (
-          <div key={h} style={{ height: h, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }} className="skeleton" />
+      <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {[100, 80, 500].map(h => (
+          <div key={h} style={{ height: h, background: S, border: `1px solid ${B}`, borderRadius: 14 }} />
         ))}
       </div>
     </div>
@@ -92,9 +96,9 @@ export default function SetorDashboard() {
   const demands: any[] = demandsData?.data || [];
   const sectorTeam = team.filter((m: any) => m.setor === setor.name && m.is_active);
 
-  const open     = demands.filter(d => !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
-  const done     = demands.filter(d => d.status === 'CONCLUIDA').length;
-  const critica  = demands.filter(d => d.priority === 'CRITICA' && !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
+  const open      = demands.filter(d => !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
+  const done      = demands.filter(d => d.status === 'CONCLUIDA').length;
+  const critica   = demands.filter(d => d.priority === 'CRITICA' && !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
   const andamento = demands.filter(d => d.status === 'EM_ANDAMENTO').length;
   const completionPct = demands.length > 0 ? Math.round((done / demands.length) * 100) : 0;
 
@@ -103,162 +107,134 @@ export default function SetorDashboard() {
     count: demands.filter(d => d.status === p.status).length,
   }));
 
-  const accent = setor.color;
+  const inp: React.CSSProperties = {
+    padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 700,
+    cursor: 'pointer', border: `1.5px solid`, transition: 'all 0.15s',
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: L }}>
       <Header title={setor.name} />
+      <main style={{ padding: '28px 40px' }} className="page-main">
 
-      {/* Hero header */}
-      <div style={{
-        borderBottom: '1px solid var(--border)',
-        background: `linear-gradient(180deg, ${accent}0D 0%, transparent 100%)`,
-        padding: '24px 32px 20px',
-      }} className="page-main">
-
-        {/* Breadcrumb */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <Link href="/setores" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-2)', textDecoration: 'none', fontWeight: 500 }}>
-            <ArrowLeft size={13} /> Setores
+        {/* ── Page header ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
+          <Link href="/setores" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: T3, textDecoration: 'none', fontWeight: 500 }}>
+            <ArrowLeft size={14} /> Setores
           </Link>
-          <span style={{ color: 'var(--border-2)' }}>/</span>
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{setor.name}</span>
-        </div>
+          <span style={{ color: B, fontSize: 16 }}>/</span>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-
-          {/* Identity */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Sector identity */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '8px 18px 8px 12px',
+            background: S, border: `1.5px solid ${setor.color}40`,
+            borderRadius: 12, boxShadow: `0 2px 12px ${setor.color}15`,
+          }}>
             <div style={{
-              width: 56, height: 56, borderRadius: 16,
-              background: `${accent}20`,
-              border: `2px solid ${accent}40`,
+              width: 40, height: 40, borderRadius: 10,
+              background: setor.color + '18',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26, flexShrink: 0,
+              fontSize: 20,
             }}>
               {setor.icon}
             </div>
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.03em', margin: 0, lineHeight: 1.1 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 900, color: T, margin: 0, letterSpacing: '-0.02em', lineHeight: 1 }}>
                 {setor.name}
               </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-                {/* Live dot */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0, boxShadow: '0 0 0 3px rgba(34,197,94,0.2)', animation: 'pulse 2s infinite' }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
-                    Ao vivo · atualizado {timeAgo(lastRefresh.toISOString())}
-                  </span>
-                </div>
-                {/* Team avatars */}
-                {sectorTeam.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ color: 'var(--border-2)', fontSize: 12 }}>·</span>
-                    <div style={{ display: 'flex', marginLeft: 0 }}>
-                      {sectorTeam.slice(0, 4).map((m: any, i: number) => (
-                        <div key={m.id} title={m.name} style={{
-                          width: 22, height: 22, borderRadius: '50%',
-                          background: `${accent}30`, border: '2px solid var(--bg)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 9, fontWeight: 800, color: accent,
-                          marginLeft: i > 0 ? -6 : 0, flexShrink: 0,
-                          zIndex: sectorTeam.length - i,
-                        }}>
-                          {m.name?.[0]?.toUpperCase()}
-                        </div>
-                      ))}
-                      {sectorTeam.length > 4 && (
-                        <div style={{
-                          width: 22, height: 22, borderRadius: '50%',
-                          background: 'var(--surface-2)', border: '2px solid var(--bg)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 9, fontWeight: 800, color: 'var(--text-3)',
-                          marginLeft: -6, flexShrink: 0,
-                        }}>
-                          +{sectorTeam.length - 4}
-                        </div>
-                      )}
-                    </div>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{sectorTeam.length} membro{sectorTeam.length !== 1 ? 's' : ''}</span>
-                  </div>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 3px #22C55E25', animation: 'pulse 2s infinite' }} />
+                <span style={{ fontSize: 11, color: T3 }}>Ao vivo · {timeAgo(lastRefresh.toISOString())}</span>
               </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Completion pill */}
+          {/* Team avatars */}
+          {sectorTeam.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex' }}>
+                {sectorTeam.slice(0, 5).map((m: any, i: number) => (
+                  <div key={m.id} title={m.name} style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: setor.color + '25',
+                    border: `2px solid ${S}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 800, color: setor.color,
+                    marginLeft: i > 0 ? -8 : 0,
+                    position: 'relative', zIndex: sectorTeam.length - i,
+                  }}>
+                    {m.name?.[0]?.toUpperCase()}
+                  </div>
+                ))}
+                {sectorTeam.length > 5 && (
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: L, border: `2px solid ${S}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 700, color: T3, marginLeft: -8,
+                  }}>+{sectorTeam.length - 5}</div>
+                )}
+              </div>
+              <span style={{ fontSize: 12, color: T3 }}>{sectorTeam.length} membro{sectorTeam.length !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Completion */}
             {demands.length > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '6px 14px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 99,
-              }}>
-                <div style={{ width: 54, height: 4, background: 'var(--border-2)', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${completionPct}%`, background: 'var(--success)', borderRadius: 99, transition: 'width 0.4s' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 16px', background: S, border: `1px solid ${B}`, borderRadius: 99 }}>
+                <div style={{ width: 64, height: 5, background: B, borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${completionPct}%`, background: '#16A34A', borderRadius: 99, transition: 'width 0.5s' }} />
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)' }}>{completionPct}%</span>
-                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>concluídos</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#16A34A' }}>{completionPct}%</span>
+                <span style={{ fontSize: 12, color: T3 }}>concluído</span>
               </div>
             )}
             <button
               onClick={() => qc.invalidateQueries({ queryKey: ['setor-demands', id] })}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px',
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                borderRadius: 8, fontSize: 12, fontWeight: 600,
-                color: 'var(--text-2)', cursor: 'pointer',
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-2)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: S, border: `1.5px solid ${B}`, borderRadius: 9, fontSize: 13, fontWeight: 600, color: T2, cursor: 'pointer' }}
             >
-              <RefreshCw size={12} /> Atualizar
+              <RefreshCw size={13} /> Atualizar
             </button>
           </div>
         </div>
 
-        {/* KPI strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 20 }} className="kpi-grid">
+        {/* ── KPI cards ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }} className="kpi-grid">
           {[
-            { label: 'Em aberto',    value: open,      icon: <CircleDot size={15} />, color: '#3B82F6' },
-            { label: 'Em andamento', value: andamento, icon: <Activity size={15} />,  color: '#F59E0B' },
-            { label: 'Concluídos',   value: done,      icon: <CheckCircle2 size={15} />, color: 'var(--success)' },
-            { label: 'Críticos',     value: critica,   icon: <Flame size={15} />,     color: 'var(--danger)' },
+            { label: 'EM ABERTO',    value: open,      icon: <CircleDot size={20} color="#3B82F6" />,   bg: '#EFF6FF', color: '#3B82F6' },
+            { label: 'EM ANDAMENTO', value: andamento, icon: <Activity size={20} color="#F59E0B" />,    bg: '#FFFBEB', color: '#F59E0B' },
+            { label: 'CONCLUÍDOS',   value: done,      icon: <CheckCircle2 size={20} color="#16A34A" />, bg: '#F0FDF4', color: '#16A34A' },
+            { label: 'CRÍTICOS',     value: critica,   icon: <Flame size={20} color="#DC2626" />,       bg: '#FEF2F2', color: '#DC2626' },
           ].map(kpi => (
-            <div key={kpi.label} style={{
-              background: 'var(--surface)',
-              border: `1px solid var(--border)`,
-              borderRadius: 12, padding: '14px 16px',
-              display: 'flex', alignItems: 'center', gap: 14,
-            }}>
-              <div style={{ color: kpi.color, flexShrink: 0 }}>{kpi.icon}</div>
-              <div>
-                <p style={{ fontSize: 26, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>{kpi.value}</p>
-                <p style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 600, letterSpacing: '0.04em', margin: '3px 0 0', textTransform: 'uppercase' }}>{kpi.label}</p>
+            <div key={kpi.label} style={{ background: S, border: `1px solid ${B}`, borderRadius: 16, padding: '22px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {kpi.icon}
+                </div>
+                {kpi.label === 'EM ABERTO' && (
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 3px #22C55E25' }} />
+                )}
               </div>
+              <p style={{ fontSize: 38, fontWeight: 900, color: kpi.color, letterSpacing: '-0.04em', lineHeight: 1, margin: '0 0 6px' }}>{kpi.value}</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.06em', margin: 0 }}>{kpi.label}</p>
             </div>
           ))}
         </div>
-      </div>
 
-      <main style={{ padding: '24px 32px' }} className="page-main">
+        {/* ── Pipeline funnel ── */}
+        <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+            <TrendingUp size={15} color={T3} />
+            <h3 style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em', margin: 0, textTransform: 'uppercase' }}>
+              Funil de etapas
+            </h3>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: T3 }}>{demands.filter(d => !['CONCLUIDA','CANCELADA'].includes(d.status)).length} ativos</span>
+          </div>
 
-        {/* Pipeline flow */}
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 14, padding: '16px 20px', marginBottom: 20,
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 14px' }}>
-            Funil de chamados
-          </p>
-          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }} className="status-tabs">
-            {pipelineWithCounts.map((stage, i) => {
+          <div style={{ display: 'flex', gap: 6 }} className="status-tabs">
+            {pipelineWithCounts.map(stage => {
               const isActive = statusFilter === stage.status;
               const hasItems = stage.count > 0;
               return (
@@ -266,38 +242,22 @@ export default function SetorDashboard() {
                   key={stage.status}
                   onClick={() => setStatusFilter(isActive ? '' : stage.status)}
                   style={{
-                    flex: '1 0 auto',
-                    minWidth: 80,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                    padding: '10px 8px',
-                    background: isActive ? `${stage.color}20` : 'var(--bg)',
-                    border: `1.5px solid ${isActive ? stage.color : 'var(--border)'}`,
-                    borderRadius: 10, cursor: 'pointer',
+                    flex: 1, minWidth: 0,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                    padding: '14px 10px',
+                    background: isActive ? stage.color + '15' : L,
+                    border: `1.5px solid ${isActive ? stage.color : B}`,
+                    borderRadius: 12, cursor: 'pointer',
                     transition: 'all 0.15s',
-                    position: 'relative',
+                    boxShadow: isActive ? `0 4px 12px ${stage.color}20` : 'none',
                   }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.borderColor = stage.color + '60'; }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.borderColor = stage.color + '80'; e.currentTarget.style.background = stage.color + '08'; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.borderColor = B; e.currentTarget.style.background = L; } }}
                 >
-                  {/* Connector line */}
-                  {i < pipelineWithCounts.length - 1 && (
-                    <span style={{
-                      position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)',
-                      width: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, color: 'var(--text-3)', zIndex: 1, pointerEvents: 'none',
-                    }}>›</span>
-                  )}
-                  <span style={{
-                    fontSize: 22, fontWeight: 900, color: hasItems ? stage.color : 'var(--text-3)',
-                    lineHeight: 1, letterSpacing: '-0.03em',
-                  }}>
+                  <span style={{ fontSize: 28, fontWeight: 900, color: hasItems ? stage.color : T3, letterSpacing: '-0.04em', lineHeight: 1 }}>
                     {stage.count}
                   </span>
-                  <span style={{
-                    fontSize: 10, fontWeight: 600,
-                    color: isActive ? stage.color : 'var(--text-3)',
-                    letterSpacing: '0.01em', textAlign: 'center', lineHeight: 1.2,
-                  }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? stage.color : T3, textAlign: 'center', lineHeight: 1.3 }}>
                     {stage.label}
                   </span>
                 </button>
@@ -306,27 +266,25 @@ export default function SetorDashboard() {
           </div>
         </div>
 
-        {/* Demand list */}
+        {/* ── Demand list ── */}
         <div>
-          {/* Filter bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+          {/* Filter row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: T, margin: 0 }}>
               Chamados
-            </span>
-            <span style={{ fontSize: 13, color: 'var(--text-3)' }}>
-              {statusFilter || priorityFilter ? '(filtrado)' : `· ${demands.length} total`}
-            </span>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 400, color: T3, marginLeft: 8 }}>
+                {statusFilter || priorityFilter ? '(filtrado)' : `${demands.length} total`}
+              </span>
+            </h3>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(PRIO).map(([key, cfg]) => (
                 <button key={key}
                   onClick={() => setPriorityFilter(priorityFilter === key ? '' : key)}
                   style={{
-                    padding: '4px 12px', borderRadius: 99,
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    background: priorityFilter === key ? cfg.color + '20' : 'transparent',
-                    color: priorityFilter === key ? cfg.color : 'var(--text-3)',
-                    border: `1px solid ${priorityFilter === key ? cfg.color + '60' : 'var(--border)'}`,
-                    transition: 'all 0.15s',
+                    ...inp,
+                    background: priorityFilter === key ? cfg.color : 'transparent',
+                    color: priorityFilter === key ? S : cfg.color,
+                    borderColor: cfg.color + (priorityFilter === key ? '' : '60'),
                   }}
                 >
                   {cfg.label}
@@ -334,142 +292,117 @@ export default function SetorDashboard() {
               ))}
               {(statusFilter || priorityFilter) && (
                 <button onClick={() => { setStatusFilter(''); setPriorityFilter(''); }}
-                  style={{
-                    padding: '4px 12px', borderRadius: 99,
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    background: 'var(--surface-2)', border: '1px solid var(--border)',
-                    color: 'var(--text-2)',
-                  }}>
+                  style={{ ...inp, background: L, color: T2, borderColor: B }}>
                   × Limpar
                 </button>
               )}
             </div>
           </div>
 
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 16, overflow: 'hidden' }}>
             {isLoading ? (
               Array(5).fill(0).map((_, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ width: 3, height: 36, background: 'var(--border-2)', borderRadius: 99 }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 24px', borderBottom: `1px solid ${B}` }}>
+                  <div style={{ width: 4, height: 40, background: B, borderRadius: 99 }} />
                   <div style={{ flex: 1 }}>
-                    <div className="skeleton" style={{ height: 13, width: '55%', borderRadius: 4, marginBottom: 7 }} />
-                    <div className="skeleton" style={{ height: 10, width: '35%', borderRadius: 4 }} />
+                    <div style={{ height: 14, background: L, borderRadius: 6, width: '50%', marginBottom: 10 }} />
+                    <div style={{ height: 11, background: L, borderRadius: 6, width: '30%' }} />
                   </div>
                 </div>
               ))
             ) : demands.length === 0 ? (
-              <div className="empty-state">
-                <CheckCircle2 size={32} color="var(--border-2)" />
-                <p style={{ fontWeight: 700, color: 'var(--text-2)', margin: 0 }}>
+              <div style={{ padding: '64px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <CheckCircle2 size={40} color={B} />
+                <p style={{ fontSize: 15, fontWeight: 700, color: T, margin: 0 }}>
                   {statusFilter || priorityFilter ? 'Nenhum chamado com esses filtros' : 'Nenhum chamado atribuído'}
                 </p>
-                <p>{statusFilter || priorityFilter ? 'Tente limpar os filtros' : 'Os chamados encaminhados aparecerão aqui'}</p>
+                <p style={{ fontSize: 13, color: T3, margin: 0 }}>
+                  {statusFilter || priorityFilter ? 'Tente limpar os filtros' : 'Os chamados encaminhados aparecerão aqui'}
+                </p>
               </div>
             ) : demands.map((d: any, i: number) => {
-              const pCfg = PRIO[d.priority] || { label: d.priority, color: 'var(--text-3)' };
+              const pCfg = PRIO[d.priority] || { label: d.priority, color: T3, bg: L };
               const stCfg = PIPELINE.find(p => p.status === d.status);
               const isCritical = d.priority === 'CRITICA';
               const idx = PIPELINE.findIndex(p => p.status === d.status);
               const next = PIPELINE[idx + 1];
-              const canAdvance = next && !['CONCLUIDA', 'CANCELADA'].includes(d.status);
+              const canAdvance = !!next && !['CONCLUIDA', 'CANCELADA'].includes(d.status);
 
               return (
                 <div
                   key={d.id}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 0,
-                    borderBottom: i < demands.length - 1 ? '1px solid var(--border)' : 'none',
-                    transition: 'background 0.1s',
+                    display: 'flex', alignItems: 'stretch',
+                    borderBottom: i < demands.length - 1 ? `1px solid ${B}` : 'none',
+                    transition: 'background 0.12s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF8')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {/* Priority strip */}
-                  <div style={{
-                    width: 3, alignSelf: 'stretch', flexShrink: 0,
-                    background: pCfg.color,
-                    opacity: 0.7,
-                  }} />
+                  {/* Priority color strip */}
+                  <div style={{ width: 4, background: pCfg.color, flexShrink: 0, opacity: 0.75 }} />
 
-                  {/* Content */}
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', minWidth: 0 }}>
-
-                    {/* Text */}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 18, padding: '16px 24px', minWidth: 0 }}>
+                    {/* Text block */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {d.title}
                         </span>
                         {d.ai_triage_data && (
-                          <span style={{
-                            flexShrink: 0,
-                            display: 'inline-flex', alignItems: 'center', gap: 3,
-                            background: 'var(--accent-dim)', borderRadius: 5,
-                            padding: '1px 6px', fontSize: 10,
-                            color: 'var(--accent-2)', fontWeight: 700,
-                          }}>
+                          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, background: AC + '25', borderRadius: 5, padding: '2px 7px', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>
                             <Zap size={9} /> IA
                           </span>
                         )}
-                        {isCritical && (
-                          <span style={{ flexShrink: 0 }}><Flame size={12} color="var(--danger)" /></span>
-                        )}
+                        {isCritical && <Flame size={13} color="#DC2626" style={{ flexShrink: 0 }} />}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        {/* Status pill */}
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '2px 8px', borderRadius: 99,
-                          background: (stCfg?.color || '#999') + '18',
-                          fontSize: 10, fontWeight: 700, color: stCfg?.color || 'var(--text-3)',
-                        }}>
-                          <span style={{ width: 4, height: 4, borderRadius: '50%', background: stCfg?.color || '#999', flexShrink: 0 }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, background: (stCfg?.color || T3) + '18', fontSize: 11, fontWeight: 700, color: stCfg?.color || T3 }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: stCfg?.color || T3 }} />
                           {stCfg?.label || d.status}
                         </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 99, background: pCfg.bg, fontSize: 11, fontWeight: 700, color: pCfg.color }}>
+                          {pCfg.label}
+                        </span>
                         {d.requester_name && (
-                          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                            {d.requester_name}{d.unit_identifier ? ` · ${d.unit_identifier}` : ''}
+                          <span style={{ fontSize: 12, color: T3 }}>
+                            {d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}
                           </span>
                         )}
-                        <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 'auto' }}>
-                          <Clock size={10} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
-                          {timeAgo(d.created_at)}
+                        <span style={{ fontSize: 12, color: T3, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={11} /> {timeAgo(d.created_at)}
                         </span>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                       {canAdvance && (
                         <button
                           onClick={() => updateMutation.mutate({ demandId: d.id, status: next.status })}
                           title={`Avançar para: ${next.label}`}
                           style={{
-                            padding: '5px 12px', borderRadius: 8,
-                            fontSize: 11, fontWeight: 700,
-                            background: next.color + '18',
-                            color: next.color,
-                            border: `1px solid ${next.color}40`,
-                            cursor: 'pointer', whiteSpace: 'nowrap',
-                            transition: 'all 0.15s',
+                            padding: '6px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
+                            background: next.color + '15', color: next.color,
+                            border: `1.5px solid ${next.color}40`,
+                            cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.background = next.color + '30'; e.currentTarget.style.borderColor = next.color; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = next.color + '18'; e.currentTarget.style.borderColor = next.color + '40'; }}
+                          onMouseEnter={e => { e.currentTarget.style.background = next.color + '28'; e.currentTarget.style.borderColor = next.color; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = next.color + '15'; e.currentTarget.style.borderColor = next.color + '40'; }}
                         >
                           {next.label} →
                         </button>
                       )}
                       <Link href={`/demands/${d.id}`} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        width: 28, height: 28, borderRadius: 7,
-                        background: 'var(--bg)', border: '1px solid var(--border)',
-                        color: 'var(--text-3)', textDecoration: 'none',
-                        transition: 'all 0.15s',
+                        width: 34, height: 34, borderRadius: 9,
+                        background: L, border: `1.5px solid ${B}`,
+                        color: T3, textDecoration: 'none', transition: 'all 0.15s',
                       }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; (e.currentTarget as HTMLElement).style.color = 'var(--text)'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-3)'; }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T3; (e.currentTarget as HTMLElement).style.color = T; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = B; (e.currentTarget as HTMLElement).style.color = T3; }}
                       >
-                        <ChevronRight size={14} />
+                        <ChevronRight size={16} />
                       </Link>
                     </div>
                   </div>
@@ -478,34 +411,35 @@ export default function SetorDashboard() {
             })}
           </div>
 
-          {/* Team footer — only shown if team exists */}
+          {/* Team strip */}
           {sectorTeam.length > 0 && (
             <div style={{
-              marginTop: 16,
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 12, padding: '14px 18px',
-              display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+              marginTop: 16, background: S, border: `1px solid ${B}`,
+              borderRadius: 14, padding: '16px 22px',
+              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Users size={13} color="var(--text-3)" />
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Equipe do setor
+                <Users size={14} color={T3} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Equipe · {sectorTeam.length}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {sectorTeam.map((m: any) => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 99 }}>
+                  <div key={m.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '6px 12px', background: L, border: `1px solid ${B}`, borderRadius: 99,
+                  }}>
                     <div style={{
-                      width: 20, height: 20, borderRadius: '50%',
-                      background: `${accent}25`,
+                      width: 24, height: 24, borderRadius: '50%',
+                      background: setor.color + '22',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 800, color: accent, flexShrink: 0,
+                      fontSize: 10, fontWeight: 800, color: setor.color, flexShrink: 0,
                     }}>
                       {m.name?.[0]?.toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)' }}>{m.name}</span>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 500, color: T2 }}>{m.name}</span>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }} title="Ativo" />
                   </div>
                 ))}
               </div>
@@ -516,8 +450,8 @@ export default function SetorDashboard() {
 
       <style>{`
         @keyframes pulse {
-          0%, 100% { opacity: 1; box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
-          50%       { opacity: 0.6; box-shadow: 0 0 0 6px rgba(34,197,94,0.05); }
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
         }
       `}</style>
     </div>
