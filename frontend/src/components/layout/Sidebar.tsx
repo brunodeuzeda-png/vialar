@@ -39,10 +39,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       borderRight: '1px solid var(--border)',
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
-      position: 'fixed',
-      left: 0, top: 0, bottom: 0,
-      zIndex: 30,
+      height: '100vh',
     }}>
       {/* Logo */}
       <div style={{

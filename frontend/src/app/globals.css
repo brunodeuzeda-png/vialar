@@ -371,6 +371,13 @@ label {
   min-height: 100vh;
 }
 .app-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar);
+  height: 100vh;
+  z-index: 30;
   transition: transform 0.25s ease;
 }
 .app-content {
@@ -408,7 +415,7 @@ label {
 
 @media (max-width: 768px) {
   .app-content { margin-left: 0 !important; }
-  .app-sidebar { transform: translateX(-100%); position: fixed !important; z-index: 30; }
+  .app-sidebar { transform: translateX(-100%); z-index: 40; }
   .app-sidebar.sidebar-open { transform: translateX(0); }
   .mobile-overlay.sidebar-open { display: block; }
   .mobile-menu-btn { display: flex; }
