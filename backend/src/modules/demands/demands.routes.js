@@ -42,6 +42,23 @@ router.post('/', isAnyRole, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/stats/by-setor', isAnyRole, async (req, res, next) => {
+  try {
+    const { rows } = await require('../../shared/db/pool').query(
+      `SELECT assigned_setor,
+         COUNT(*) FILTER (WHERE status NOT IN ('CONCLUIDA','CANCELADA')) AS open,
+         COUNT(*) FILTER (WHERE status = 'CONCLUIDA') AS done,
+         COUNT(*) FILTER (WHERE priority = 'CRITICA' AND status NOT IN ('CONCLUIDA','CANCELADA')) AS critical,
+         COUNT(*) AS total
+       FROM demands
+       WHERE condominium_id = $1 AND assigned_setor IS NOT NULL
+       GROUP BY assigned_setor`,
+      [req.tenant.id]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 router.get('/:id', isAnyRole, async (req, res, next) => {
   try {
     const demand = await service.getById(req.params.id, req.tenant.id);

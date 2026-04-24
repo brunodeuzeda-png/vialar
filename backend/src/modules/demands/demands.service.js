@@ -35,6 +35,12 @@ async function list(condominiumId, filters = {}) {
     countParams.push(`%${filters.search}%`);
     countSql += ` AND (title ILIKE $${countParams.length} OR description ILIKE $${countParams.length})`;
   }
+  if (filters.assigned_setor) {
+    params.push(filters.assigned_setor);
+    sql += ` AND d.assigned_setor = $${params.length}`;
+    countParams.push(filters.assigned_setor);
+    countSql += ` AND assigned_setor = $${countParams.length}`;
+  }
 
   sql += ` ORDER BY d.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
   params.push(limit, offset);
