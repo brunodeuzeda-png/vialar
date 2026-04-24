@@ -72,6 +72,15 @@ router.post('/:id/ai/triage', isSindico, async (req, res, next) => {
     const triage = await aiService.triageDemand(demand);
     if (triage) {
       await service.update(req.params.id, req.tenant.id, { ai_triage_data: triage }, req.user.id);
+      // Route to setor after triage
+      const routing = await aiService.routeDemandToSetor(
+        { ...demand, category: triage.category || demand.category, priority: triage.priority || demand.priority },
+        SETORES
+      );
+      if (routing?.assigned_setor) {
+        emitToCondominium(req.tenant.id, 'demand:routed', { id: demand.id, setor: routing.assigned_setor });
+        triage._routing = routing;
+      }
     }
     res.json(triage);
   } catch (err) { next(err); }

@@ -7,6 +7,7 @@ Analise este chamado condominial e retorne JSON com:
 {
   "priority": "CRITICA|ALTA|MEDIA|BAIXA",
   "category": "MANUTENCAO|LIMPEZA|SEGURANCA|FINANCEIRO|BARULHO|INFRAESTRUTURA|ADMINISTRATIVO|OUTRO",
+  "summary": "resumo executivo do chamado em 1-2 frases para o síndico",
   "urgency_reason": "motivo breve da prioridade",
   "suggested_action": "próxima ação recomendada em uma frase",
   "estimated_resolution_hours": número,

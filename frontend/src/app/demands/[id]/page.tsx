@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Zap, MessageSquare, User, Home,
   Send, Loader2, RefreshCw, Tag, Calendar,
-  Clock, AlertCircle, CheckCircle2, XCircle,
+  Clock, AlertCircle, CheckCircle2, XCircle, Users,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 
@@ -315,28 +315,52 @@ export default function DemandDetailPage() {
                     {aiLoading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={11} />} Refazer
                   </button>
                 </div>
+
+                {/* Summary */}
                 {triage.summary && (
                   <p style={{ fontSize: 13, color: T, lineHeight: 1.6, margin: '0 0 14px', padding: '10px 14px', background: AC + '15', borderRadius: 8, borderLeft: `3px solid ${AC}` }}>
                     {triage.summary}
                   </p>
                 )}
+
+                {/* Routing highlight */}
+                {demand.assigned_setor && (
+                  <div style={{ marginBottom: 14, padding: '14px 16px', background: S, borderRadius: 10, border: `2px solid #3B82F630`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, background: '#EFF6FF', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Users size={16} color="#3B82F6" />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 11, color: T3, margin: '0 0 2px', fontWeight: 600, letterSpacing: '0.04em' }}>ENCAMINHADO PARA</p>
+                      <p style={{ fontSize: 15, fontWeight: 800, color: T, margin: 0 }}>{demand.assigned_setor}</p>
+                      {demand.routing_data?.justificativa && (
+                        <p style={{ fontSize: 12, color: T2, margin: '3px 0 0' }}>{demand.routing_data.justificativa}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Triage metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   {[
-                    { label: 'Urgência', value: triage.urgency_score ? `${triage.urgency_score}/10` : null },
-                    { label: 'Categoria sugerida', value: CATEGORY_LABEL[triage.category] || triage.category },
-                    { label: 'Prioridade sugerida', value: PRIORITY_CONFIG[triage.priority]?.label || triage.priority },
+                    { label: 'Categoria', value: CATEGORY_LABEL[triage.category] || triage.category },
+                    { label: 'Prioridade', value: PRIORITY_CONFIG[triage.priority]?.label || triage.priority },
+                    { label: 'Resolução estimada', value: triage.estimated_resolution_hours ? `${triage.estimated_resolution_hours}h` : null },
                   ].filter(i => i.value).map(item => (
-                    <div key={item.label} style={{ background: S, border: `1px solid ${B}`, borderRadius: 8, padding: '10px 12px' }}>
+                    <div key={item.label} style={{ background: L, border: `1px solid ${B}`, borderRadius: 8, padding: '10px 12px' }}>
                       <p style={{ fontSize: 11, color: T3, margin: '0 0 3px', fontWeight: 600 }}>{item.label}</p>
                       <p style={{ fontSize: 13, color: T, fontWeight: 700, margin: 0 }}>{item.value}</p>
                     </div>
                   ))}
                 </div>
-                {demand.assigned_setor && (
-                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: S, borderRadius: 8, border: `1px solid ${B}` }}>
-                    <Tag size={13} color={T3} />
-                    <span style={{ fontSize: 12, color: T2 }}>Encaminhado para:</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: T }}>{demand.assigned_setor}</span>
+
+                {/* Suggested action */}
+                {triage.suggested_action && (
+                  <div style={{ marginTop: 12, padding: '10px 14px', background: S, borderRadius: 8, border: `1px solid ${B}`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <CheckCircle2 size={14} color="#16A34A" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <p style={{ fontSize: 11, color: T3, margin: '0 0 2px', fontWeight: 600 }}>AÇÃO SUGERIDA</p>
+                      <p style={{ fontSize: 13, color: T, margin: 0 }}>{triage.suggested_action}</p>
+                    </div>
                   </div>
                 )}
               </div>
