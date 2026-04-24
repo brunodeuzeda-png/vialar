@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCondominium } from '@/contexts/CondominiumContext';
 import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -79,6 +80,8 @@ export default function DemandDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
+  const { activeCondo } = useCondominium();
+  const condoId = activeCondo?.id;
 
   const [comment, setComment] = useState('');
   const [statusEdit, setStatusEdit] = useState(false);
@@ -86,13 +89,14 @@ export default function DemandDetailPage() {
   const [aiLoading, setAiLoading] = useState(false);
 
   const { data: demand, isLoading } = useQuery({
-    queryKey: ['demand', id],
-    queryFn: () => api.get(`/demands/${id}`).then(r => r.data),
+    queryKey: ['demand', id, condoId],
+    queryFn: () => api.get(`/demands/${id}`, { params: { condominium_id: condoId } }).then(r => r.data),
+    enabled: !!condoId,
     onSuccess: (d: any) => { if (!selectedStatus) setSelectedStatus(d.status); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => api.patch(`/demands/${id}`, data).then(r => r.data),
+    mutationFn: (data: any) => api.patch(`/demands/${id}`, { ...data, condominium_id: condoId }).then(r => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['demand', id] });
       qc.invalidateQueries({ queryKey: ['demands'] });
@@ -103,7 +107,7 @@ export default function DemandDetailPage() {
   });
 
   const commentMutation = useMutation({
-    mutationFn: () => api.post(`/demands/${id}/updates`, { type: 'COMMENT', content: comment }).then(r => r.data),
+    mutationFn: () => api.post(`/demands/${id}/updates`, { type: 'COMMENT', content: comment, condominium_id: condoId }).then(r => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['demand', id] });
       setComment('');
