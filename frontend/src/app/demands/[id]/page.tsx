@@ -496,7 +496,7 @@ export default function DemandDetailPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Settings2 size={14} color={T2} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em' }}>CONFIGURAÇÕES</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em' }}>EDITAR CHAMADO</span>
                 </div>
                 <ChevronDown size={14} color={T3} style={{ transform: showConfig ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>

@@ -1,0 +1,3 @@
+-- Add new update types to enum
+ALTER TYPE update_type ADD VALUE IF NOT EXISTS 'SETOR_CHANGE';
+ALTER TYPE update_type ADD VALUE IF NOT EXISTS 'PRIORITY_CHANGE';
