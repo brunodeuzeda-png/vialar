@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { X, Plus, Loader2 } from 'lucide-react';
@@ -32,9 +33,21 @@ interface Props {
 
 export default function NewDemandModal({ onClose, onSuccess }: Props) {
   const [form, setForm] = useState({
-    title: '', description: '', category: 'MANUTENCAO', priority: 'MEDIA',
+    title: '', description: '', category: 'MANUTENCAO', priority: 'MEDIA', condominium_id: '',
   });
   const [loading, setLoading] = useState(false);
+
+  const { data: condosData } = useQuery({
+    queryKey: ['condominiums'],
+    queryFn: () => api.get('/condominiums').then(r => r.data),
+    staleTime: 60_000,
+    onSuccess: (data: any[]) => {
+      if (data?.length === 1 && !form.condominium_id) {
+        setForm(f => ({ ...f, condominium_id: data[0].id }));
+      }
+    },
+  });
+  const condos: any[] = condosData || [];
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -49,6 +62,10 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
     e.preventDefault();
     if (!form.title.trim() || !form.description.trim()) {
       toast.error('Preencha título e descrição');
+      return;
+    }
+    if (condos.length > 1 && !form.condominium_id) {
+      toast.error('Selecione o condomínio');
       return;
     }
     setLoading(true);
@@ -81,6 +98,25 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {condos.length > 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>CONDOMÍNIO</label>
+              <select
+                style={{ ...inp, cursor: 'pointer' }}
+                value={form.condominium_id}
+                onChange={e => set('condominium_id', e.target.value)}
+                onFocus={e => (e.target.style.borderColor = T)}
+                onBlur={e => (e.target.style.borderColor = B)}
+                required
+              >
+                <option value="">Selecione o condomínio...</option>
+                {condos.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>TÍTULO</label>

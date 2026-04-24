@@ -11,7 +11,7 @@ function tenantMiddleware(req, res, next) {
 
   if (user.role === ROLES.ADMIN) {
     req.tenant = {
-      id: req.params.condominiumId || user.condominium_id,
+      id: req.params.condominiumId || req.body?.condominium_id || user.condominium_id,
       administradoraId: user.administradora_id,
       isAdmin: true,
     };
