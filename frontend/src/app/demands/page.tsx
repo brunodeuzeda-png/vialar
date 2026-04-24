@@ -106,9 +106,9 @@ export default function DemandsPage() {
   };
 
   if (view === 'kanban') return (
-    <div style={{ height: '100vh', overflow: 'hidden', background: L, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Chamados" />
-      <div style={{ padding: '16px 24px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ padding: '20px 28px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ fontSize: 22, fontWeight: 900, color: T, letterSpacing: '-0.04em', margin: 0 }}>Chamados</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ display: 'flex', background: S, border: `1.5px solid ${B}`, borderRadius: 9, padding: 3, gap: 2 }}>
@@ -135,7 +135,8 @@ export default function DemandsPage() {
           </button>
         </div>
       </div>
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '0 24px 16px' }}>
+      {/* Board: fixed height, scrolls only horizontally */}
+      <div style={{ overflowX: 'auto', overflowY: 'hidden', padding: '0 28px 20px' }}>
         <KanbanBoard onNewDemand={() => setShowNew(true)} />
       </div>
       {showNew && (
