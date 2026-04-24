@@ -38,7 +38,7 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
 
   const { data: condos = [] } = useQuery<any[]>({
-    queryKey: ['condominiums'],
+    queryKey: ['condominiums', 'active'],
     queryFn: () => api.get('/condominiums', { params: { active: 'true' } }).then(r => r.data),
     staleTime: 60_000,
   });
