@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import NewDemandModal from '@/components/demands/NewDemandModal';
+import { useCondominium } from '@/contexts/CondominiumContext';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
 const T = '#0A0A0A', T2 = '#666', T3 = '#999';
@@ -79,12 +80,16 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 export default function DemandsPage() {
   const qc = useQueryClient();
+  const { activeCondo } = useCondominium();
   const [filters, setFilters] = useState({ status: '', priority: '', search: '', page: 1 });
   const [showNew, setShowNew] = useState(false);
 
+  const condoId = activeCondo?.id;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['demands', filters],
-    queryFn: () => api.get('/demands', { params: { ...filters, limit: 15 } }).then(r => r.data),
+    queryKey: ['demands', filters, condoId],
+    queryFn: () => api.get('/demands', { params: { ...filters, limit: 15, condominium_id: condoId } }).then(r => r.data),
+    enabled: !!condoId,
   });
 
   const set = (key: string, value: string) => setFilters(f => ({ ...f, [key]: value, page: 1 }));

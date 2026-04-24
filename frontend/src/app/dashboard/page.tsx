@@ -9,30 +9,37 @@ import {
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { useCondominium } from '@/contexts/CondominiumContext';
 
-const L = '#F8F8F4';   // fundo principal
-const S = '#FFFFFF';   // superfície cards
-const B = '#E8E8E0';   // borda
-const T = '#0A0A0A';   // texto principal
-const T2 = '#666';     // texto secundário
-const T3 = '#999';     // texto terciário
-const AC = '#BBFF00';  // accent verde lima
+const L = '#F8F8F4';
+const S = '#FFFFFF';
+const B = '#E8E8E0';
+const T = '#0A0A0A';
+const T2 = '#666';
+const T3 = '#999';
+const AC = '#BBFF00';
 
 export default function DashboardPage() {
+  const { activeCondo } = useCondominium();
+  const condoId = activeCondo?.id;
+
   const { data: overview, isLoading } = useQuery({
-    queryKey: ['dashboard-overview'],
-    queryFn: () => api.get('/dashboard/overview').then(r => r.data),
+    queryKey: ['dashboard-overview', condoId],
+    queryFn: () => api.get('/dashboard/overview', { params: { condominium_id: condoId } }).then(r => r.data),
+    enabled: !!condoId,
     refetchInterval: 30000,
   });
 
   const { data: alerts } = useQuery({
-    queryKey: ['dashboard-alerts'],
-    queryFn: () => api.get('/dashboard/alerts').then(r => r.data),
+    queryKey: ['dashboard-alerts', condoId],
+    queryFn: () => api.get('/dashboard/alerts', { params: { condominium_id: condoId } }).then(r => r.data),
+    enabled: !!condoId,
   });
 
   const { data: digest } = useQuery({
-    queryKey: ['ai-digest'],
-    queryFn: () => api.get('/dashboard/ai-digest').then(r => r.data),
+    queryKey: ['ai-digest', condoId],
+    queryFn: () => api.get('/dashboard/ai-digest', { params: { condominium_id: condoId } }).then(r => r.data),
+    enabled: !!condoId,
     staleTime: 1000 * 60 * 60,
   });
 
