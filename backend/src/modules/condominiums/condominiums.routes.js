@@ -6,7 +6,8 @@ router.use(auth);
 
 router.get('/', async (req, res, next) => {
   try {
-    const condos = await svc.list(req.user.administradora_id);
+    let condos = await svc.list(req.user.administradora_id);
+    if (req.query.active === 'true') condos = condos.filter(c => c.is_active);
     res.json(condos);
   } catch (err) { next(err); }
 });

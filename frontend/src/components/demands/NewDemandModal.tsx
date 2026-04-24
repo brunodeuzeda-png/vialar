@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { X, Plus, Loader2 } from 'lucide-react';
+import { X, Plus, Loader2, Building2 } from 'lucide-react';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
 const T = '#0A0A0A', T2 = '#666', T3 = '#999';
@@ -37,17 +37,18 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
   });
   const [loading, setLoading] = useState(false);
 
-  const { data: condosData } = useQuery({
+  const { data: condos = [] } = useQuery<any[]>({
     queryKey: ['condominiums'],
-    queryFn: () => api.get('/condominiums').then(r => r.data),
+    queryFn: () => api.get('/condominiums', { params: { active: 'true' } }).then(r => r.data),
     staleTime: 60_000,
-    onSuccess: (data: any[]) => {
-      if (data?.length === 1 && !form.condominium_id) {
-        setForm(f => ({ ...f, condominium_id: data[0].id }));
-      }
-    },
   });
-  const condos: any[] = condosData || [];
+
+  // Auto-fill when only one active condo (useEffect replaces deprecated onSuccess)
+  useEffect(() => {
+    if (condos.length === 1 && !form.condominium_id) {
+      setForm(f => ({ ...f, condominium_id: condos[0].id }));
+    }
+  }, [condos]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -64,7 +65,7 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
       toast.error('Preencha título e descrição');
       return;
     }
-    if (condos.length > 1 && !form.condominium_id) {
+    if (!form.condominium_id) {
       toast.error('Selecione o condomínio');
       return;
     }
@@ -79,6 +80,8 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
       setLoading(false);
     }
   }
+
+  const selectedCondo = condos.find((c: any) => c.id === form.condominium_id);
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -99,9 +102,10 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {condos.length > 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>CONDOMÍNIO</label>
+          {/* Condomínio: selector if multiple, read-only pill if single */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>CONDOMÍNIO</label>
+            {condos.length > 1 ? (
               <select
                 style={{ ...inp, cursor: 'pointer' }}
                 value={form.condominium_id}
@@ -115,8 +119,18 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-            </div>
-          )}
+            ) : condos.length === 1 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', background: L, border: `1.5px solid ${B}`, borderRadius: 8 }}>
+                <Building2 size={15} color={T3} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: T }}>{condos[0].name}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: '#16A34A', fontWeight: 600, background: '#F0FDF4', padding: '2px 8px', borderRadius: 99 }}>Ativo</span>
+              </div>
+            ) : (
+              <div style={{ padding: '10px 13px', background: '#FEF2F2', border: `1.5px solid #FECACA`, borderRadius: 8, fontSize: 13, color: '#DC2626' }}>
+                Nenhum condomínio ativo encontrado. Cadastre um condomínio primeiro.
+              </div>
+            )}
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>TÍTULO</label>
@@ -181,14 +195,16 @@ export default function NewDemandModal({ onClose, onSuccess }: Props) {
             </button>
             <button
               type="submit"
-              disabled={loading}
-              style={{ flex: 1, padding: '11px 0', background: T, border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, color: S, cursor: loading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: loading ? 0.7 : 1 }}
+              disabled={loading || condos.length === 0}
+              style={{ flex: 1, padding: '11px 0', background: T, border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, color: S, cursor: (loading || condos.length === 0) ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, opacity: (loading || condos.length === 0) ? 0.5 : 1 }}
             >
               {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <><Plus size={15} /> Abrir Chamado</>}
             </button>
           </div>
         </form>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

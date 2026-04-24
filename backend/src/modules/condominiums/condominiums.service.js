@@ -9,9 +9,9 @@ async function list(administradoraId) {
      FROM condominiums c
      LEFT JOIN users u ON u.condominium_id = c.id
      LEFT JOIN demands d ON d.condominium_id = c.id
-     WHERE c.administradora_id = $1 AND c.is_active = true
+     WHERE c.administradora_id = $1
      GROUP BY c.id
-     ORDER BY c.created_at DESC`,
+     ORDER BY c.is_active DESC, c.created_at DESC`,
     [administradoraId]
   );
   return rows;
