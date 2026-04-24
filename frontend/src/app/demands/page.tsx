@@ -106,39 +106,44 @@ export default function DemandsPage() {
   };
 
   if (view === 'kanban') return (
-    <div style={{ minHeight: '100vh', background: L }}>
-      <Header title="Chamados" />
-      <div style={{ padding: '20px 28px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 900, color: T, letterSpacing: '-0.04em', margin: 0 }}>Chamados</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', background: S, border: `1.5px solid ${B}`, borderRadius: 9, padding: 3, gap: 2 }}>
-            {[
-              { key: 'list', icon: <LayoutList size={15} />, label: 'Lista' },
-              { key: 'kanban', icon: <Kanban size={15} />, label: 'Kanban' },
-            ].map(v => (
-              <button key={v.key} onClick={() => setView(v.key as any)} style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
-                borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                background: view === v.key ? T : 'transparent',
-                color: view === v.key ? S : T2,
-                transition: 'all 0.15s',
-              }}>
-                {v.icon} {v.label}
-              </button>
-            ))}
+    <div style={{ height: '100vh', background: L, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Fixed top section */}
+      <div style={{ flexShrink: 0 }}>
+        <Header title="Chamados" />
+        <div style={{ padding: '16px 28px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${B}` }}>
+          <h1 style={{ fontSize: 20, fontWeight: 900, color: T, letterSpacing: '-0.03em', margin: 0 }}>Chamados</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', background: S, border: `1.5px solid ${B}`, borderRadius: 9, padding: 3, gap: 2 }}>
+              {[
+                { key: 'list', icon: <LayoutList size={15} />, label: 'Lista' },
+                { key: 'kanban', icon: <Kanban size={15} />, label: 'Kanban' },
+              ].map(v => (
+                <button key={v.key} onClick={() => setView(v.key as any)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+                  borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  background: view === v.key ? T : 'transparent',
+                  color: view === v.key ? S : T2,
+                  transition: 'all 0.15s',
+                }}>
+                  {v.icon} {v.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowNew(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', background: T, color: S, fontWeight: 800, fontSize: 13, borderRadius: 10, border: 'none', cursor: 'pointer' }}
+            >
+              <Plus size={15} /> Novo Chamado
+            </button>
           </div>
-          <button
-            onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', background: T, color: S, fontWeight: 800, fontSize: 13, borderRadius: 10, border: 'none', cursor: 'pointer' }}
-          >
-            <Plus size={15} /> Novo Chamado
-          </button>
         </div>
       </div>
-      {/* Board: fixed height, scrolls only horizontally */}
-      <div style={{ overflowX: 'auto', overflowY: 'hidden', padding: '0 28px 20px' }}>
+
+      {/* Scrollable board area — fills remaining height */}
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 28px 16px' }}>
         <KanbanBoard onNewDemand={() => setShowNew(true)} />
       </div>
+
       {showNew && (
         <NewDemandModal
           onClose={() => setShowNew(false)}

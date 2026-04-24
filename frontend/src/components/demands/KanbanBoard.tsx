@@ -76,7 +76,7 @@ export default function KanbanBoard({ onNewDemand }: { onNewDemand: () => void }
   }
 
   return (
-    <div style={{ display: 'flex', gap: 8, minWidth: 'max-content', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', gap: 8, minWidth: 'max-content', height: '100%' }}>
       {COLUMNS.map(col => {
         const cards = demands.filter(d => d.status === col.status);
         const isOver = dragOver === col.status;
@@ -89,7 +89,7 @@ export default function KanbanBoard({ onNewDemand }: { onNewDemand: () => void }
             onDrop={() => handleDrop(col.status)}
             style={{
               width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column',
-              height: 'calc(100vh - 200px)', maxHeight: 640,
+              height: '100%',
               background: isOver ? col.color + '10' : L,
               border: `2px solid ${isOver ? col.color : B}`,
               borderRadius: 12, padding: '10px 8px', transition: 'all 0.15s',
