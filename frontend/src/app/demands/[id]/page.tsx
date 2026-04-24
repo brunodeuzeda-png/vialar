@@ -125,7 +125,7 @@ export default function DemandDetailPage() {
     return (
       <div style={{ minHeight: '100vh', background: L }}>
         <Header title="Chamado" />
-        <main style={{ padding: '28px 32px' }}>
+        <main style={{ padding: '28px 32px' }} className="page-main">
           <div style={{ height: 100, background: S, border: `1px solid ${B}`, borderRadius: 14, marginBottom: 20 }} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
             <div style={{ height: 300, background: S, border: `1px solid ${B}`, borderRadius: 14 }} />
@@ -146,7 +146,7 @@ export default function DemandDetailPage() {
   return (
     <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Chamado" />
-      <main style={{ padding: '28px 32px' }}>
+      <main style={{ padding: '28px 32px' }} className="page-main">
 
         {/* Back */}
         <button
@@ -301,7 +301,7 @@ export default function DemandDetailPage() {
         {/* ── END PIPELINE ─────────────────────────────────────── */}
 
         {/* 2-col body */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }} className="detail-grid">
 
           {/* Left */}
           <div>

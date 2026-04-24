@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, MessageSquare, ShieldCheck, Wrench,
-  DollarSign, MessageCircle, Settings, LogOut, Zap, Building2, Users, Layers
+  DollarSign, MessageCircle, Settings, LogOut, Zap, Building2, Users, Layers, X
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { useState } from 'react';
@@ -21,7 +21,7 @@ const nav = [
   { href: '/communications', label: 'WhatsApp', icon: MessageCircle },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -48,9 +48,18 @@ export default function Sidebar() {
       <div style={{
         padding: '20px 20px 18px',
         borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <Logo size={30} />
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="show-mobile"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-2)', padding: 6, borderRadius: 6 }}
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* AI badge */}

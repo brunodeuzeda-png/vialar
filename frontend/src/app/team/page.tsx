@@ -119,7 +119,7 @@ export default function TeamPage() {
   return (
     <div style={{ background: L, minHeight: '100vh' }}>
       <Header title="Equipe" subtitle="Gerencie os funcionários da administradora" />
-      <div style={{ padding: '0 32px 32px' }}>
+      <div className="page-main" style={{ padding: '0 32px 32px' }}>
 
         {/* Toolbar */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>

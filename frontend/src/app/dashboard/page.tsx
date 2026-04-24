@@ -60,7 +60,7 @@ export default function DashboardPage() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: L }}>
       <Header />
 
-      <main style={{ flex: 1, padding: '28px 32px', maxWidth: 1200 }}>
+      <main style={{ flex: 1, padding: '28px 32px', maxWidth: 1200 }} className="page-main">
 
         {/* AI Digest */}
         {digest?.summary && (
@@ -93,7 +93,7 @@ export default function DashboardPage() {
         )}
 
         {/* KPI Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }} className="kpi-grid">
           {isLoading ? (
             Array(4).fill(0).map((_, i) => (
               <div key={i} style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, padding: 22, height: 120 }}>

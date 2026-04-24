@@ -199,7 +199,7 @@ export default function SetoresPage() {
   return (
     <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Setores" />
-      <main style={{ padding: '28px 32px' }}>
+      <main style={{ padding: '28px 32px' }} className="page-main">
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>

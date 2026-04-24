@@ -156,7 +156,7 @@ export default function DemandsPage() {
   return (
     <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Chamados" />
-      <main style={{ padding: '28px 32px' }}>
+      <main style={{ padding: '28px 32px' }} className="page-main">
 
         {/* Page header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -196,7 +196,7 @@ export default function DemandsPage() {
         {/* Status tabs — list view only */}
         {view === 'list' && <>
         {/* Status tabs */}
-        <div style={{ display: 'flex', gap: 4, background: S, border: `1px solid ${B}`, borderRadius: 10, padding: 4, width: 'fit-content', marginBottom: 20 }}>
+        <div className="status-tabs" style={{ marginBottom: 20 }}><div style={{ display: 'flex', gap: 4, background: S, border: `1px solid ${B}`, borderRadius: 10, padding: 4, width: 'fit-content' }}>
           {STATUSES.map(({ value, label }) => {
             const active = filters.status === value;
             return (
@@ -211,7 +211,7 @@ export default function DemandsPage() {
               </button>
             );
           })}
-        </div>
+        </div></div>
 
         {/* Search + filter */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
@@ -243,7 +243,7 @@ export default function DemandsPage() {
         </>}
 
         {/* Table */}
-        <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+        <div className="table-wrap"><div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${B}` }}>
@@ -347,7 +347,7 @@ export default function DemandsPage() {
               </div>
             </div>
           )}
-        </div>
+        </div></div>
       </main>
 
       {showNew && (

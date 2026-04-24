@@ -1,27 +1,4 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import Sidebar from '@/components/layout/Sidebar';
-import { PageLoader } from '@/components/ui/Spinner';
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) router.replace('/login');
-  }, [user, loading, router]);
-
-  if (loading) return <PageLoader />;
-  if (!user) return null;
-
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#F8F8F4' }}>
-      <Sidebar />
-      <div style={{ flex: 1, marginLeft: '264px', display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F8F8F4' }}>
-        {children}
-      </div>
-    </div>
-  );
+import AppLayout from '@/components/layout/AppLayout';
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <AppLayout>{children}</AppLayout>;
 }

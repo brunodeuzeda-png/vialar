@@ -20,8 +20,8 @@ export default function Header({ title }: HeaderProps) {
     <header style={{
       height: 60, background: L, borderBottom: `1px solid ${B}`,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 32px', position: 'sticky', top: 0, zIndex: 20,
-    }}>
+      padding: '0 32px 0 72px', position: 'sticky', top: 0, zIndex: 20,
+    }} className="responsive-header">
       <div>
         {title ? (
           <h1 style={{ fontSize: 16, fontWeight: 800, color: T, letterSpacing: '-0.02em' }}>{title}</h1>
