@@ -10,7 +10,9 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import NewDemandModal from '@/components/demands/NewDemandModal';
+import KanbanBoard from '@/components/demands/KanbanBoard';
 import { useCondominium } from '@/contexts/CondominiumContext';
+import { LayoutList, Kanban } from 'lucide-react';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
 const T = '#0A0A0A', T2 = '#666', T3 = '#999';
@@ -83,6 +85,7 @@ export default function DemandsPage() {
   const { activeCondo } = useCondominium();
   const [filters, setFilters] = useState({ status: '', priority: '', search: '', page: 1 });
   const [showNew, setShowNew] = useState(false);
+  const [view, setView] = useState<'list' | 'kanban'>('list');
 
   const condoId = activeCondo?.id;
 
@@ -115,14 +118,35 @@ export default function DemandsPage() {
               {pagination?.total ?? '—'} registros encontrados
             </p>
           </div>
-          <button
-            onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px', background: T, color: S, fontWeight: 800, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer' }}
-          >
-            <Plus size={16} /> Novo Chamado
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* View toggle */}
+            <div style={{ display: 'flex', background: S, border: `1.5px solid ${B}`, borderRadius: 9, padding: 3, gap: 2 }}>
+              {[
+                { key: 'list', icon: <LayoutList size={15} />, label: 'Lista' },
+                { key: 'kanban', icon: <Kanban size={15} />, label: 'Kanban' },
+              ].map(v => (
+                <button key={v.key} onClick={() => setView(v.key as any)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+                  borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  background: view === v.key ? T : 'transparent',
+                  color: view === v.key ? S : T2,
+                  transition: 'all 0.15s',
+                }}>
+                  {v.icon} {v.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowNew(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px', background: T, color: S, fontWeight: 800, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer' }}
+            >
+              <Plus size={16} /> Novo Chamado
+            </button>
+          </div>
         </div>
 
+        {/* Status tabs — list view only */}
+        {view === 'list' && <>
         {/* Status tabs */}
         <div style={{ display: 'flex', gap: 4, background: S, border: `1px solid ${B}`, borderRadius: 10, padding: 4, width: 'fit-content', marginBottom: 20 }}>
           {STATUSES.map(({ value, label }) => {
@@ -168,8 +192,15 @@ export default function DemandsPage() {
           </select>
         </div>
 
-        {/* Table */}
-        <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+        </>}
+
+        {/* Kanban view */}
+        {view === 'kanban' && (
+          <KanbanBoard onNewDemand={() => setShowNew(true)} />
+        )}
+
+        {/* Table (list view) */}
+        {view === 'list' && <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${B}` }}>
@@ -273,7 +304,7 @@ export default function DemandsPage() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </main>
 
       {showNew && (
