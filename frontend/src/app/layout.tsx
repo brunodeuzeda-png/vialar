@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CondominiumProvider } from '@/contexts/CondominiumContext';
 import { Toaster } from 'sonner';
 import QueryProvider from '@/components/shared/QueryProvider';
 
@@ -18,8 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <QueryProvider>
           <AuthProvider>
-            {children}
-            <Toaster richColors position="top-right" />
+            <CondominiumProvider>
+              {children}
+              <Toaster richColors position="top-right" />
+            </CondominiumProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

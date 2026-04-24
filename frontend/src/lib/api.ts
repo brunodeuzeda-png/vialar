@@ -9,6 +9,15 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = Cookies.get('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // Inject active condominium_id into GET requests automatically
+  if (config.method === 'get' || !config.method) {
+    const condoId = typeof window !== 'undefined' ? localStorage.getItem('active_condo_id') : null;
+    if (condoId && !config.params?.condominium_id) {
+      config.params = { ...config.params, condominium_id: condoId };
+    }
+  }
+
   return config;
 });
 
