@@ -135,7 +135,7 @@ export default function DemandsPage() {
           </button>
         </div>
       </div>
-      <div style={{ flex: 1, overflow: 'hidden', padding: '0 24px 16px' }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '0 24px 16px' }}>
         <KanbanBoard onNewDemand={() => setShowNew(true)} />
       </div>
       {showNew && (
