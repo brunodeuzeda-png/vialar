@@ -10,8 +10,10 @@ api.interceptors.request.use((config) => {
   const token = Cookies.get('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
-  // Inject active condominium_id into GET requests automatically
-  if (config.method === 'get' || !config.method) {
+  // Inject active condominium_id into GET requests (skip auth + condominiums routes)
+  const url = config.url || '';
+  const skipInject = url.includes('/auth') || url.includes('/condominiums');
+  if ((config.method === 'get' || !config.method) && !skipInject) {
     const condoId = typeof window !== 'undefined' ? localStorage.getItem('active_condo_id') : null;
     if (condoId && !config.params?.condominium_id) {
       config.params = { ...config.params, condominium_id: condoId };
