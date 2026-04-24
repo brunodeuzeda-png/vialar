@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import {
   Users, Plus, X, Mail, Phone, Shield, Briefcase,
-  CheckCircle2, XCircle, ChevronDown, Search
+  CheckCircle2, XCircle, ChevronDown, Search, Building2
 } from 'lucide-react';
 
 const L = '#F8F8F4';
@@ -35,11 +35,13 @@ interface Member {
   is_active: boolean;
   last_login_at: string;
   created_at: string;
+  condominium_id: string;
+  condominium_name: string;
 }
 
 const emptyForm = {
   name: '', email: '', password: '', phone: '', whatsapp_number: '',
-  setor: '', funcao: '', role: 'FUNCIONARIO' as const,
+  setor: '', funcao: '', role: 'FUNCIONARIO' as const, condominium_id: '',
 };
 
 export default function TeamPage() {
@@ -53,6 +55,11 @@ export default function TeamPage() {
   const { data: members = [], isLoading } = useQuery<Member[]>({
     queryKey: ['team'],
     queryFn: () => api.get('/team').then(r => r.data),
+  });
+
+  const { data: condos = [] } = useQuery<any[]>({
+    queryKey: ['condominiums', 'all'],
+    queryFn: () => api.get('/condominiums').then(r => r.data),
   });
 
   const createMutation = useMutation({
@@ -77,7 +84,7 @@ export default function TeamPage() {
   function openCreate() { setEditMember(null); setForm({ ...emptyForm }); setShowModal(true); }
   function openEdit(m: Member) {
     setEditMember(m);
-    setForm({ name: m.name, email: m.email, password: '', phone: formatBRPhone(m.phone || ''), whatsapp_number: formatBRPhone(m.whatsapp_number || ''), setor: m.setor || '', funcao: m.funcao || '', role: m.role });
+    setForm({ name: m.name, email: m.email, password: '', phone: formatBRPhone(m.phone || ''), whatsapp_number: formatBRPhone(m.whatsapp_number || ''), setor: m.setor || '', funcao: m.funcao || '', role: m.role, condominium_id: m.condominium_id || '' });
     setShowModal(true);
   }
   function closeModal() { setShowModal(false); setEditMember(null); setForm({ ...emptyForm }); }
@@ -226,6 +233,13 @@ export default function TeamPage() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>WhatsApp</label>
                   <input value={form.whatsapp_number} onChange={e => setForm(p => ({ ...p, whatsapp_number: maskBRPhone(e.target.value) }))} style={inp} placeholder="(11) 9xxxx-xxxx" maxLength={15} inputMode="tel" />
                 </div>
+                <div style={{ gridColumn: '1/-1' }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>Condomínio</label>
+                  <select value={form.condominium_id} onChange={e => setForm(p => ({ ...p, condominium_id: e.target.value }))} style={{ ...inp, cursor: 'pointer' }}>
+                    <option value="">Sem condomínio vinculado</option>
+                    {condos.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>Setor</label>
                   <select value={form.setor} onChange={e => setForm(p => ({ ...p, setor: e.target.value }))} style={{ ...inp, cursor: 'pointer' }}>
@@ -321,7 +335,12 @@ function MemberCard({ member: m, onEdit, onToggle, borderBottom }: {
             <span style={{ fontSize: 10, fontWeight: 700, color: '#999', background: '#F0F0F0', borderRadius: 4, padding: '1px 5px' }}>INATIVO</span>
           )}
         </div>
-        {m.funcao && <p style={{ fontSize: 12, color: '#666', margin: '0 0 4px' }}>{m.funcao}</p>}
+        {m.funcao && <p style={{ fontSize: 12, color: '#666', margin: '0 0 2px' }}>{m.funcao}</p>}
+        {m.condominium_name && (
+          <p style={{ fontSize: 11, color: '#3B82F6', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Building2 size={10} /> {m.condominium_name}
+          </p>
+        )}
         <p style={{ fontSize: 11, color: '#999', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</p>
       </div>
       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
