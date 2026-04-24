@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { formatBRPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { Plus, Search, Star, Phone, Mail, Wrench } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -94,7 +95,7 @@ export default function ProvidersPage() {
               <div className="space-y-1.5 border-t border-slate-50 pt-3">
                 {p.phone && (
                   <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Phone size={11} /> {p.phone}
+                    <Phone size={11} /> {formatBRPhone(p.phone)}
                   </div>
                 )}
                 {p.email && (

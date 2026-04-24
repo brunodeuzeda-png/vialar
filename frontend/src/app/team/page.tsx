@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { maskBRPhone, formatBRPhone, phoneToWhatsApp } from '@/lib/phone';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import {
@@ -76,19 +77,23 @@ export default function TeamPage() {
   function openCreate() { setEditMember(null); setForm({ ...emptyForm }); setShowModal(true); }
   function openEdit(m: Member) {
     setEditMember(m);
-    setForm({ name: m.name, email: m.email, password: '', phone: m.phone || '', whatsapp_number: m.whatsapp_number || '', setor: m.setor || '', funcao: m.funcao || '', role: m.role });
+    setForm({ name: m.name, email: m.email, password: '', phone: formatBRPhone(m.phone || ''), whatsapp_number: formatBRPhone(m.whatsapp_number || ''), setor: m.setor || '', funcao: m.funcao || '', role: m.role });
     setShowModal(true);
   }
   function closeModal() { setShowModal(false); setEditMember(null); setForm({ ...emptyForm }); }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const payload: any = {
+      ...form,
+      phone: form.phone.replace(/\D/g, '') || null,
+      whatsapp_number: phoneToWhatsApp(form.whatsapp_number) || null,
+    };
     if (editMember) {
-      const data: any = { ...form };
-      if (!data.password) delete data.password;
-      updateMutation.mutate({ id: editMember.id, data });
+      if (!payload.password) delete payload.password;
+      updateMutation.mutate({ id: editMember.id, data: payload });
     } else {
-      createMutation.mutate(form);
+      createMutation.mutate(payload);
     }
   }
 
@@ -215,11 +220,11 @@ export default function TeamPage() {
                 )}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>Telefone</label>
-                  <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} style={inp} placeholder="(11) 9xxxx-xxxx" />
+                  <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: maskBRPhone(e.target.value) }))} style={inp} placeholder="(11) 9xxxx-xxxx" maxLength={15} inputMode="tel" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>WhatsApp</label>
-                  <input value={form.whatsapp_number} onChange={e => setForm(p => ({ ...p, whatsapp_number: e.target.value }))} style={inp} placeholder="55119xxxx-xxxx" />
+                  <input value={form.whatsapp_number} onChange={e => setForm(p => ({ ...p, whatsapp_number: maskBRPhone(e.target.value) }))} style={inp} placeholder="(11) 9xxxx-xxxx" maxLength={15} inputMode="tel" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>Setor</label>

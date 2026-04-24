@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { maskBRPhone, formatBRPhone, phoneToWhatsApp } from '@/lib/phone';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import {
@@ -45,24 +46,8 @@ function formatCep(v: string) {
   return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
 }
 
-// WhatsApp BR: stores as 5511999999999, displays as (11) 99999-9999
-function formatWhatsapp(v: string) {
-  const d = v.replace(/\D/g, '');
-  // strip leading 55 for display
-  const local = d.startsWith('55') ? d.slice(2) : d;
-  const n = local.slice(0, 11);
-  if (n.length <= 2) return n;
-  if (n.length <= 7) return `(${n.slice(0,2)}) ${n.slice(2)}`;
-  if (n.length <= 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
-  return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
-}
-
-function whatsappToStorage(v: string) {
-  const d = v.replace(/\D/g, '');
-  if (!d) return '';
-  const local = d.startsWith('55') ? d.slice(2) : d;
-  return local ? `55${local}` : '';
-}
+const formatWhatsapp = formatBRPhone;
+const whatsappToStorage = phoneToWhatsApp;
 
 interface Condo {
   id: string; name: string; cnpj: string; address: string;
@@ -153,7 +138,7 @@ export default function CondominiumsPage() {
       city: c.city || '', state: c.state || '',
       total_units: String(c.total_units || ''),
       whatsapp_number: c.whatsapp_number ? formatWhatsapp(c.whatsapp_number) : '',
-      sindico_name: c.sindico_name || '', sindico_phone: c.sindico_phone || '',
+      sindico_name: c.sindico_name || '', sindico_phone: formatBRPhone(c.sindico_phone || ''),
       sindico_whatsapp: c.sindico_whatsapp ? formatWhatsapp(c.sindico_whatsapp) : '',
       sindico_email: c.sindico_email || '',
     });
@@ -226,7 +211,7 @@ export default function CondominiumsPage() {
       total_units: form.total_units || null,
       whatsapp_number: whatsappToStorage(form.whatsapp_number) || null,
       sindico_name: form.sindico_name || null,
-      sindico_phone: form.sindico_phone || null,
+      sindico_phone: form.sindico_phone.replace(/\D/g, '') || null,
       sindico_whatsapp: whatsappToStorage(form.sindico_whatsapp) || null,
       sindico_email: form.sindico_email || null,
     };
@@ -441,18 +426,16 @@ export default function CondominiumsPage() {
                     </div>
 
                     <Field label="WhatsApp do condomínio" hint="receberá chamados dos moradores">
-                      <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: T2, pointerEvents: 'none', userSelect: 'none' }}>+55</span>
-                        <input
-                          value={form.whatsapp_number}
-                          onChange={e => setForm(f => ({ ...f, whatsapp_number: formatWhatsapp(e.target.value) }))}
-                          placeholder="(11) 99999-9999"
-                          style={inp({ paddingLeft: 46 })}
-                          onFocus={e => e.target.style.borderColor = T}
-                          onBlur={e => e.target.style.borderColor = B}
-                          maxLength={16}
-                        />
-                      </div>
+                      <input
+                        value={form.whatsapp_number}
+                        onChange={e => setForm(f => ({ ...f, whatsapp_number: maskBRPhone(e.target.value) }))}
+                        placeholder="(11) 99999-9999"
+                        style={inp()}
+                        onFocus={e => e.target.style.borderColor = T}
+                        onBlur={e => e.target.style.borderColor = B}
+                        maxLength={15}
+                        inputMode="tel"
+                      />
                     </Field>
 
                     {/* Quick-nav to other tabs */}
@@ -609,26 +592,26 @@ export default function CondominiumsPage() {
                       <Field label="Telefone">
                         <input
                           value={form.sindico_phone}
-                          onChange={sf('sindico_phone')}
+                          onChange={e => setForm(f => ({ ...f, sindico_phone: maskBRPhone(e.target.value) }))}
                           placeholder="(11) 9xxxx-xxxx"
                           style={inp()}
                           onFocus={e => e.target.style.borderColor = T}
                           onBlur={e => e.target.style.borderColor = B}
+                          maxLength={15}
+                          inputMode="tel"
                         />
                       </Field>
                       <Field label="WhatsApp">
-                        <div style={{ position: 'relative' }}>
-                          <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 600, color: T2, pointerEvents: 'none', userSelect: 'none' }}>+55</span>
                         <input
                           value={form.sindico_whatsapp}
-                          onChange={e => setForm(f => ({ ...f, sindico_whatsapp: formatWhatsapp(e.target.value) }))}
+                          onChange={e => setForm(f => ({ ...f, sindico_whatsapp: maskBRPhone(e.target.value) }))}
                           placeholder="(11) 99999-9999"
-                          style={inp({ paddingLeft: 46 })}
+                          style={inp()}
                           onFocus={e => e.target.style.borderColor = T}
                           onBlur={e => e.target.style.borderColor = B}
-                          maxLength={16}
+                          maxLength={15}
+                          inputMode="tel"
                         />
-                        </div>
                       </Field>
                     </div>
                   </>
