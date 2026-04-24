@@ -265,6 +265,14 @@ export default function SetoresPage() {
 
                 {/* Edit / Delete actions */}
                 <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 4 }}>
+                  <Link
+                    href={`/setores/${setor.id}`}
+                    onClick={e => e.stopPropagation()}
+                    title="Dashboard do setor"
+                    style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T3, textDecoration: 'none' }}
+                  >
+                    <ChevronRight size={12} />
+                  </Link>
                   <button
                     onClick={e => { e.stopPropagation(); setEditing(setor); setModalOpen(true); }}
                     style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T3 }}
