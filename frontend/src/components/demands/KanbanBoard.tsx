@@ -5,19 +5,19 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/utils';
 import { useCondominium } from '@/contexts/CondominiumContext';
-import { Zap, GripVertical, Plus } from 'lucide-react';
+import { Zap, Plus } from 'lucide-react';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
 const T = '#0A0A0A', T2 = '#666', T3 = '#999';
 const AC = '#BBFF00';
 
 const COLUMNS = [
-  { status: 'ABERTA',               label: 'Aberta',            color: '#3B82F6', bg: '#EFF6FF' },
-  { status: 'EM_ANDAMENTO',         label: 'Em andamento',      color: '#F59E0B', bg: '#FFFBEB' },
-  { status: 'AGUARDANDO_ORCAMENTO', label: 'Aguard. orçamento', color: '#F97316', bg: '#FFF7ED' },
-  { status: 'AGUARDANDO_APROVACAO', label: 'Aguard. aprovação', color: '#EAB308', bg: '#FEF9C3' },
-  { status: 'AGENDADA',             label: 'Agendada',          color: '#22C55E', bg: '#F0FDF4' },
-  { status: 'CONCLUIDA',            label: 'Concluída',         color: '#16A34A', bg: '#DCFCE7' },
+  { status: 'ABERTA',               label: 'Aberta',        color: '#3B82F6' },
+  { status: 'EM_ANDAMENTO',         label: 'Em andamento',  color: '#F59E0B' },
+  { status: 'AGUARDANDO_ORCAMENTO', label: 'Orçamento',     color: '#F97316' },
+  { status: 'AGUARDANDO_APROVACAO', label: 'Aprovação',     color: '#EAB308' },
+  { status: 'AGENDADA',             label: 'Agendada',      color: '#22C55E' },
+  { status: 'CONCLUIDA',            label: 'Concluída',     color: '#16A34A' },
 ];
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -67,53 +67,50 @@ export default function KanbanBoard({ onNewDemand }: { onNewDemand: () => void }
   const demands: any[] = data?.data || [];
 
   function handleDrop(status: string) {
-    if (dragging && dragging !== status) {
+    if (dragging) {
       const demand = demands.find(d => d.id === dragging);
-      if (demand && demand.status !== status) {
-        moveMutation.mutate({ id: dragging, status });
-      }
+      if (demand && demand.status !== status) moveMutation.mutate({ id: dragging, status });
     }
     setDragging(null);
     setDragOver(null);
   }
 
   return (
-    <div style={{ overflowX: 'auto', paddingBottom: 16 }}>
-      <div style={{ display: 'flex', gap: 12, minWidth: 'max-content' }}>
-        {COLUMNS.map(col => {
-          const cards = demands.filter(d => d.status === col.status);
-          const isOver = dragOver === col.status;
+    <div style={{ display: 'flex', gap: 8, height: 'calc(100vh - 160px)', overflowX: 'auto', paddingBottom: 8 }}>
+      {COLUMNS.map(col => {
+        const cards = demands.filter(d => d.status === col.status);
+        const isOver = dragOver === col.status;
 
-          return (
-            <div
-              key={col.status}
-              onDragOver={e => { e.preventDefault(); setDragOver(col.status); }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={() => handleDrop(col.status)}
-              style={{
-                width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10,
-                background: isOver ? col.bg : L,
-                border: `2px solid ${isOver ? col.color : B}`,
-                borderRadius: 14, padding: 12, transition: 'all 0.15s',
-                minHeight: 200,
-              }}
-            >
-              {/* Column header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T }}>{col.label}</span>
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: T3, background: S, border: `1px solid ${B}`, padding: '1px 7px', borderRadius: 99 }}>
-                  {cards.length}
-                </span>
+        return (
+          <div
+            key={col.status}
+            onDragOver={e => { e.preventDefault(); setDragOver(col.status); }}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={() => handleDrop(col.status)}
+            style={{
+              width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column',
+              background: isOver ? col.color + '10' : L,
+              border: `2px solid ${isOver ? col.color : B}`,
+              borderRadius: 12, padding: '10px 8px', transition: 'all 0.15s',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: T }}>{col.label}</span>
               </div>
+              <span style={{ fontSize: 10, fontWeight: 700, color: T3, background: S, border: `1px solid ${B}`, padding: '1px 6px', borderRadius: 99 }}>
+                {cards.length}
+              </span>
+            </div>
 
-              {/* Cards */}
-              {isLoading && [1,2].map(i => (
-                <div key={i} style={{ background: S, borderRadius: 10, padding: 12, border: `1px solid ${B}` }}>
-                  <div style={{ height: 12, background: L, borderRadius: 4, marginBottom: 8, width: '80%' }} />
-                  <div style={{ height: 10, background: L, borderRadius: 4, width: '50%' }} />
+            {/* Scrollable cards */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {isLoading && [1, 2, 3].map(i => (
+                <div key={i} style={{ background: S, borderRadius: 8, padding: '8px 10px', border: `1px solid ${B}` }}>
+                  <div style={{ height: 10, background: L, borderRadius: 4, marginBottom: 6, width: '80%' }} />
+                  <div style={{ height: 8, background: L, borderRadius: 4, width: '50%' }} />
                 </div>
               ))}
 
@@ -126,77 +123,73 @@ export default function KanbanBoard({ onNewDemand }: { onNewDemand: () => void }
                   style={{
                     background: S,
                     border: `1.5px solid ${dragging === demand.id ? col.color : B}`,
-                    borderRadius: 10, padding: 12, cursor: 'grab',
-                    opacity: dragging === demand.id ? 0.5 : 1,
-                    boxShadow: dragging === demand.id ? `0 4px 12px ${col.color}30` : 'none',
-                    transition: 'all 0.15s',
+                    borderRadius: 8, padding: '8px 10px', cursor: 'grab',
+                    opacity: dragging === demand.id ? 0.45 : 1,
+                    transition: 'all 0.12s',
+                    flexShrink: 0,
                   }}
                 >
                   <Link href={`/demands/${demand.id}`} style={{ textDecoration: 'none' }}>
-                    {/* Category + title */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>
+                    {/* Title row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 5 }}>
+                      <span style={{ fontSize: 12, flexShrink: 0, lineHeight: 1.3 }}>
                         {CATEGORY_ICON[demand.category] || '📌'}
                       </span>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: T, margin: 0, lineHeight: 1.35 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: T, margin: 0, lineHeight: 1.3,
+                        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
                         {demand.title}
                       </p>
                     </div>
 
-                    {/* Meta row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {/* Priority */}
+                    {/* Badges */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                        fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99,
                         color: PRIORITY_COLOR[demand.priority] || T3,
-                        background: PRIORITY_COLOR[demand.priority] ? PRIORITY_COLOR[demand.priority] + '18' : L,
+                        background: (PRIORITY_COLOR[demand.priority] || '#999') + '18',
                       }}>
                         {PRIORITY_LABEL[demand.priority] || demand.priority}
                       </span>
-
-                      {/* AI badge */}
                       {demand.ai_triage_data && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: AC + '25', color: '#5A7A00', display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Zap size={9} /> IA
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, background: AC + '25', color: '#5A7A00', display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Zap size={8} />IA
                         </span>
                       )}
-
-                      {/* Time */}
-                      <span style={{ fontSize: 10, color: T3, marginLeft: 'auto' }}>
+                      <span style={{ fontSize: 9, color: T3, marginLeft: 'auto' }}>
                         {timeAgo(demand.created_at)}
                       </span>
                     </div>
 
                     {/* Requester */}
                     {demand.requester_name && (
-                      <p style={{ fontSize: 11, color: T3, margin: '6px 0 0', borderTop: `1px solid ${B}`, paddingTop: 6 }}>
-                        {demand.requester_name}{demand.unit_identifier ? ` · Apt ${demand.unit_identifier}` : ''}
+                      <p style={{ fontSize: 10, color: T3, margin: '5px 0 0', borderTop: `1px solid ${B}`, paddingTop: 4,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {demand.requester_name}{demand.unit_identifier ? ` · ${demand.unit_identifier}` : ''}
                       </p>
                     )}
                   </Link>
                 </div>
               ))}
 
-              {/* Empty col */}
               {!isLoading && cards.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px 8px', color: T3, fontSize: 12 }}>
-                  Nenhum chamado
+                <div style={{ textAlign: 'center', padding: '20px 4px', color: T3, fontSize: 11 }}>
+                  Vazio
                 </div>
               )}
-
-              {/* Add button on first column */}
-              {col.status === 'ABERTA' && !isLoading && (
-                <button
-                  onClick={onNewDemand}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '8px', background: 'none', border: `1.5px dashed ${B}`, borderRadius: 9, fontSize: 12, color: T3, cursor: 'pointer', marginTop: 2 }}
-                >
-                  <Plus size={13} /> Novo chamado
-                </button>
-              )}
             </div>
-          );
-        })}
-      </div>
+
+            {/* Add button on first column */}
+            {col.status === 'ABERTA' && !isLoading && (
+              <button
+                onClick={onNewDemand}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '6px', background: 'none', border: `1.5px dashed ${B}`, borderRadius: 8, fontSize: 11, color: T3, cursor: 'pointer', marginTop: 6, flexShrink: 0 }}
+              >
+                <Plus size={11} /> Novo chamado
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
