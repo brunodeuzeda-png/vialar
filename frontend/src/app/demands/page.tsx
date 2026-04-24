@@ -105,6 +105,48 @@ export default function DemandsPage() {
     fontFamily: 'inherit', transition: 'border-color 0.15s',
   };
 
+  if (view === 'kanban') return (
+    <div style={{ height: '100vh', overflow: 'hidden', background: L, display: 'flex', flexDirection: 'column' }}>
+      <Header title="Chamados" />
+      <div style={{ padding: '16px 24px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 900, color: T, letterSpacing: '-0.04em', margin: 0 }}>Chamados</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', background: S, border: `1.5px solid ${B}`, borderRadius: 9, padding: 3, gap: 2 }}>
+            {[
+              { key: 'list', icon: <LayoutList size={15} />, label: 'Lista' },
+              { key: 'kanban', icon: <Kanban size={15} />, label: 'Kanban' },
+            ].map(v => (
+              <button key={v.key} onClick={() => setView(v.key as any)} style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+                borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                background: view === v.key ? T : 'transparent',
+                color: view === v.key ? S : T2,
+                transition: 'all 0.15s',
+              }}>
+                {v.icon} {v.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowNew(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', background: T, color: S, fontWeight: 800, fontSize: 13, borderRadius: 10, border: 'none', cursor: 'pointer' }}
+          >
+            <Plus size={15} /> Novo Chamado
+          </button>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '0 24px 16px' }}>
+        <KanbanBoard onNewDemand={() => setShowNew(true)} />
+      </div>
+      {showNew && (
+        <NewDemandModal
+          onClose={() => setShowNew(false)}
+          onSuccess={() => { setShowNew(false); qc.invalidateQueries({ queryKey: ['demands'] }); }}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Chamados" />
@@ -194,13 +236,8 @@ export default function DemandsPage() {
 
         </>}
 
-        {/* Kanban view */}
-        {view === 'kanban' && (
-          <KanbanBoard onNewDemand={() => setShowNew(true)} />
-        )}
-
-        {/* Table (list view) */}
-        {view === 'list' && <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+        {/* Table */}
+        <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${B}` }}>
@@ -304,7 +341,7 @@ export default function DemandsPage() {
               </div>
             </div>
           )}
-        </div>}
+        </div>
       </main>
 
       {showNew && (
