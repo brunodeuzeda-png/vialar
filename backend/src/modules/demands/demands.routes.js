@@ -4,7 +4,7 @@ const authMiddleware = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
 const { isSindico, isAnyRole } = require('../../middleware/rbac');
 const aiService = require('../ai/ai.service');
-const { SETORES } = require('../team/team.service');
+const setoresService = require('../setores/setores.service');
 const { emitToCondominium } = require('../../websocket/ws.server');
 
 router.use(authMiddleware, tenantMiddleware);
@@ -30,9 +30,10 @@ router.post('/', isAnyRole, async (req, res, next) => {
         emitToCondominium(req.tenant.id, 'demand:triage_done', { id: demand.id, triage });
       }
       if (administradoraId) {
+        const setores = await setoresService.getNames(administradoraId);
         const routing = await aiService.routeDemandToSetor(
           { ...demand, category: triage?.category || demand.category, priority: triage?.priority || demand.priority },
-          SETORES
+          setores.length ? setores : ['Manutenção','Financeiro','Jurídico','Atendimento','Obras e Reformas','Segurança','Administrativo','TI']
         );
         if (routing) emitToCondominium(req.tenant.id, 'demand:routed', { id: demand.id, setor: routing.assigned_setor });
       }
@@ -90,9 +91,10 @@ router.post('/:id/ai/triage', isSindico, async (req, res, next) => {
     if (triage) {
       await service.update(req.params.id, req.tenant.id, { ai_triage_data: triage }, req.user.id);
       // Route to setor after triage
+      const setores = await setoresService.getNames(req.user.administradora_id);
       const routing = await aiService.routeDemandToSetor(
         { ...demand, category: triage.category || demand.category, priority: triage.priority || demand.priority },
-        SETORES
+        setores.length ? setores : ['Manutenção','Financeiro','Jurídico','Atendimento','Obras e Reformas','Segurança','Administrativo','TI']
       );
       if (routing?.assigned_setor) {
         emitToCondominium(req.tenant.id, 'demand:routed', { id: demand.id, setor: routing.assigned_setor });

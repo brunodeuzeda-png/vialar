@@ -41,6 +41,7 @@ app.use('/v1/financial', require('./modules/financial/financial.routes'));
 app.use('/v1/compliance', require('./modules/compliance/compliance.routes'));
 app.use('/v1/condominiums', require('./modules/condominiums/condominiums.routes'));
 app.use('/v1/team', require('./modules/team/team.routes'));
+app.use('/v1/setores', require('./modules/setores/setores.routes'));
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
