@@ -11,6 +11,10 @@ router.use(authMiddleware, tenantMiddleware);
 
 router.get('/', isAnyRole, async (req, res, next) => {
   try {
+    if (req.query.all_condominiums === 'true' && req.tenant.administradoraId) {
+      const result = await service.listAllCondos(req.tenant.administradoraId, req.query);
+      return res.json(result);
+    }
     const result = await service.list(req.tenant.id, req.query);
     res.json(result);
   } catch (err) { next(err); }

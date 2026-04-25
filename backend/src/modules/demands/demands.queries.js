@@ -2,15 +2,37 @@ const LIST = `
   SELECT d.*,
     u.name AS requester_name, u.whatsapp_number AS requester_whatsapp,
     un.identifier AS unit_identifier,
-    a.name AS assigned_name
+    a.name AS assigned_name,
+    c.name AS condominium_name
   FROM demands d
   LEFT JOIN users u ON d.requester_id = u.id
   LEFT JOIN units un ON d.unit_id = un.id
   LEFT JOIN users a ON d.assigned_to_id = a.id
+  LEFT JOIN condominiums c ON d.condominium_id = c.id
   WHERE d.condominium_id = $1
 `;
 
 const COUNT = `SELECT COUNT(*) FROM demands WHERE condominium_id = $1`;
+
+const LIST_ALL_CONDOS = `
+  SELECT d.*,
+    u.name AS requester_name, u.whatsapp_number AS requester_whatsapp,
+    un.identifier AS unit_identifier,
+    a.name AS assigned_name,
+    c.name AS condominium_name
+  FROM demands d
+  LEFT JOIN users u ON d.requester_id = u.id
+  LEFT JOIN units un ON d.unit_id = un.id
+  LEFT JOIN users a ON d.assigned_to_id = a.id
+  LEFT JOIN condominiums c ON d.condominium_id = c.id
+  WHERE c.administradora_id = $1
+`;
+
+const COUNT_ALL_CONDOS = `
+  SELECT COUNT(*) FROM demands d
+  LEFT JOIN condominiums c ON d.condominium_id = c.id
+  WHERE c.administradora_id = $1
+`;
 
 const GET_BY_ID = `
   SELECT d.*,
@@ -84,4 +106,4 @@ const STATS = `
   WHERE condominium_id = $1
 `;
 
-module.exports = { LIST, COUNT, GET_BY_ID, GET_UPDATES, INSERT, UPDATE_STATUS, UPDATE, INSERT_UPDATE, STATS };
+module.exports = { LIST, COUNT, LIST_ALL_CONDOS, COUNT_ALL_CONDOS, GET_BY_ID, GET_UPDATES, INSERT, UPDATE_STATUS, UPDATE, INSERT_UPDATE, STATS };

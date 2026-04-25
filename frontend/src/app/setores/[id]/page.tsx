@@ -50,11 +50,11 @@ export default function SetorDashboard() {
   });
 
   const { data: demandsData, isLoading, dataUpdatedAt } = useQuery({
-    queryKey: ['setor-demands', id, condoId, statusFilter, priorityFilter],
+    queryKey: ['setor-demands', id, statusFilter, priorityFilter],
     queryFn: () => api.get('/demands', {
-      params: { condominium_id: condoId, assigned_setor: setor?.name, status: statusFilter || undefined, priority: priorityFilter || undefined, limit: 100 }
+      params: { condominium_id: condoId, all_condominiums: 'true', assigned_setor: setor?.name, status: statusFilter || undefined, priority: priorityFilter || undefined, limit: 200 }
     }).then(r => r.data),
-    enabled: !!condoId && !!setor?.name,
+    enabled: !!setor?.name,
     refetchInterval: 15000,
   });
 
@@ -64,8 +64,8 @@ export default function SetorDashboard() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ demandId, status }: { demandId: string; status: string }) =>
-      api.patch(`/demands/${demandId}`, { status, condominium_id: condoId }),
+    mutationFn: ({ demandId, status, condominiumId }: { demandId: string; status: string; condominiumId: string }) =>
+      api.patch(`/demands/${demandId}`, { status, condominium_id: condominiumId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['setor-demands', id] });
       toast.success('Status atualizado');
@@ -103,6 +103,20 @@ export default function SetorDashboard() {
     ...p,
     count: demands.filter(d => d.status === p.status).length,
   }));
+
+  // Group demands by condominium
+  const demandsFiltered = demands.filter(d => {
+    if (priorityFilter && d.priority !== priorityFilter) return false;
+    if (statusFilter && d.status !== statusFilter) return false;
+    return true;
+  });
+  const condoGroups: Record<string, { name: string; demands: any[] }> = {};
+  for (const d of demandsFiltered) {
+    const key = d.condominium_id || 'unknown';
+    if (!condoGroups[key]) condoGroups[key] = { name: d.condominium_name || 'Condomínio', demands: [] };
+    condoGroups[key].demands.push(d);
+  }
+  const groupEntries = Object.entries(condoGroups);
 
   const accent = setor.color;
 
@@ -185,10 +199,10 @@ export default function SetorDashboard() {
             </div>
           </div>
 
-          {/* Demand list */}
-          <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
-            {isLoading ? (
-              Array(5).fill(0).map((_, i) => (
+          {/* Demand list — grouped by condominium */}
+          {isLoading ? (
+            <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+              {Array(5).fill(0).map((_, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: `1px solid ${B}` }}>
                   <div style={{ width: 3, height: 40, background: B, borderRadius: 99 }} />
                   <div style={{ flex: 1 }}>
@@ -196,81 +210,100 @@ export default function SetorDashboard() {
                     <div className="skeleton" style={{ height: 10, width: '35%', borderRadius: 4 }} />
                   </div>
                 </div>
-              ))
-            ) : demands.length === 0 ? (
-              <div style={{ padding: '60px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                <CheckCircle2 size={36} color={B} />
-                <p style={{ fontSize: 15, fontWeight: 700, color: T, margin: 0 }}>
-                  {statusFilter || priorityFilter ? 'Nenhum chamado com esses filtros' : 'Nenhum chamado atribuído'}
-                </p>
-                <p style={{ fontSize: 13, color: T3, margin: 0 }}>
-                  {statusFilter || priorityFilter ? 'Tente limpar os filtros' : 'Os chamados encaminhados aparecerão aqui'}
-                </p>
-              </div>
-            ) : demands.map((d: any, i: number) => {
-              const pCfg = PRIO[d.priority] || { label: d.priority, color: T3, bg: L };
-              const stCfg = PIPELINE.find(p => p.status === d.status);
-              const idx = PIPELINE.findIndex(p => p.status === d.status);
-              const next = PIPELINE[idx + 1];
-              const canAdvance = !!next && !['CONCLUIDA', 'CANCELADA'].includes(d.status);
-
-              return (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'stretch', borderBottom: i < demands.length - 1 ? `1px solid ${B}` : 'none', transition: 'background 0.1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF8')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-
-                  {/* Priority strip */}
-                  <div style={{ width: 3, flexShrink: 0, background: pCfg.color, opacity: 0.7 }} />
-
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 16, padding: '13px 20px', minWidth: 0 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
-                        {d.ai_triage_data && (
-                          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, background: AC + '25', borderRadius: 5, padding: '1px 6px', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>
-                            <Zap size={9} /> IA
-                          </span>
-                        )}
-                        {d.priority === 'CRITICA' && <Flame size={12} color="#DC2626" style={{ flexShrink: 0 }} />}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, background: (stCfg?.color || T3) + '18', fontSize: 10, fontWeight: 700, color: stCfg?.color || T3 }}>
-                          <span style={{ width: 4, height: 4, borderRadius: '50%', background: stCfg?.color || T3 }} />
-                          {stCfg?.label || d.status}
-                        </span>
-                        <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 99, background: pCfg.bg, fontSize: 10, fontWeight: 700, color: pCfg.color }}>
-                          {pCfg.label}
-                        </span>
-                        {d.requester_name && <span style={{ fontSize: 11, color: T3 }}>{d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}</span>}
-                        <span style={{ fontSize: 11, color: T3, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Clock size={10} /> {timeAgo(d.created_at)}
-                        </span>
-                      </div>
+              ))}
+            </div>
+          ) : demandsFiltered.length === 0 ? (
+            <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, padding: '60px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <CheckCircle2 size={36} color={B} />
+              <p style={{ fontSize: 15, fontWeight: 700, color: T, margin: 0 }}>
+                {statusFilter || priorityFilter ? 'Nenhum chamado com esses filtros' : 'Nenhum chamado atribuído'}
+              </p>
+              <p style={{ fontSize: 13, color: T3, margin: 0 }}>
+                {statusFilter || priorityFilter ? 'Tente limpar os filtros' : 'Os chamados encaminhados aparecerão aqui'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {groupEntries.map(([condoKey, group]) => (
+                <div key={condoKey}>
+                  {/* Condominium header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, padding: '6px 4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
+                      <span style={{ fontSize: 13, fontWeight: 800, color: T }}>{group.name}</span>
                     </div>
+                    <span style={{ fontSize: 11, color: T3, background: B, padding: '1px 8px', borderRadius: 99, fontWeight: 600 }}>
+                      {group.demands.length} chamado{group.demands.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
 
-                    {/* Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      {canAdvance && (
-                        <button
-                          onClick={() => updateMutation.mutate({ demandId: d.id, status: next.status })}
-                          style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: next.color + '15', color: next.color, border: `1.5px solid ${next.color}40`, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = next.color + '28'; e.currentTarget.style.borderColor = next.color; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = next.color + '15'; e.currentTarget.style.borderColor = next.color + '40'; }}
-                        >
-                          {next.short} →
-                        </button>
-                      )}
-                      <Link href={`/demands/${d.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: L, border: `1px solid ${B}`, color: T3, textDecoration: 'none', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T3; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = B; }}>
-                        <ChevronRight size={14} />
-                      </Link>
-                    </div>
+                  {/* Demands for this condo */}
+                  <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
+                    {group.demands.map((d: any, i: number) => {
+                      const pCfg = PRIO[d.priority] || { label: d.priority, color: T3, bg: L };
+                      const stCfg = PIPELINE.find(p => p.status === d.status);
+                      const idx = PIPELINE.findIndex(p => p.status === d.status);
+                      const next = PIPELINE[idx + 1];
+                      const canAdvance = !!next && !['CONCLUIDA', 'CANCELADA'].includes(d.status);
+                      return (
+                        <div key={d.id}
+                          style={{ display: 'flex', alignItems: 'stretch', borderBottom: i < group.demands.length - 1 ? `1px solid ${B}` : 'none', transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF8')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+
+                          <div style={{ width: 3, flexShrink: 0, background: pCfg.color, opacity: 0.7 }} />
+
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 16, padding: '13px 20px', minWidth: 0 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+                                {d.ai_triage_data && (
+                                  <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, background: AC + '25', borderRadius: 5, padding: '1px 6px', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>
+                                    <Zap size={9} /> IA
+                                  </span>
+                                )}
+                                {d.priority === 'CRITICA' && <Flame size={12} color="#DC2626" style={{ flexShrink: 0 }} />}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, background: (stCfg?.color || T3) + '18', fontSize: 10, fontWeight: 700, color: stCfg?.color || T3 }}>
+                                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: stCfg?.color || T3 }} />
+                                  {stCfg?.label || d.status}
+                                </span>
+                                <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 99, background: pCfg.bg, fontSize: 10, fontWeight: 700, color: pCfg.color }}>
+                                  {pCfg.label}
+                                </span>
+                                {d.requester_name && <span style={{ fontSize: 11, color: T3 }}>{d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}</span>}
+                                <span style={{ fontSize: 11, color: T3, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  <Clock size={10} /> {timeAgo(d.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              {canAdvance && (
+                                <button
+                                  onClick={() => updateMutation.mutate({ demandId: d.id, status: next.status, condominiumId: d.condominium_id })}
+                                  style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: next.color + '15', color: next.color, border: `1.5px solid ${next.color}40`, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = next.color + '28'; e.currentTarget.style.borderColor = next.color; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = next.color + '15'; e.currentTarget.style.borderColor = next.color + '40'; }}
+                                >
+                                  {next.short} →
+                                </button>
+                              )}
+                              <Link href={`/demands/${d.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: L, border: `1px solid ${B}`, color: T3, textDecoration: 'none', transition: 'all 0.15s' }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T3; }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = B; }}>
+                                <ChevronRight size={14} />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── RIGHT sidebar ── */}

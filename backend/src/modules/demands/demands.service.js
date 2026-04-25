@@ -53,6 +53,44 @@ async function list(condominiumId, filters = {}) {
   return paginatedResponse(rows, countRows[0].count, page, limit);
 }
 
+async function listAllCondos(administradoraId, filters = {}) {
+  const { page, limit, offset } = paginate(filters.page, filters.limit);
+
+  let sql = Q.LIST_ALL_CONDOS;
+  let countSql = Q.COUNT_ALL_CONDOS;
+  const params = [administradoraId];
+  const countParams = [administradoraId];
+
+  if (filters.assigned_setor) {
+    params.push(filters.assigned_setor);
+    sql += ` AND d.assigned_setor = $${params.length}`;
+    countParams.push(filters.assigned_setor);
+    countSql += ` AND d.assigned_setor = $${countParams.length}`;
+  }
+  if (filters.status) {
+    params.push(filters.status);
+    sql += ` AND d.status = $${params.length}`;
+    countParams.push(filters.status);
+    countSql += ` AND d.status = $${countParams.length}`;
+  }
+  if (filters.priority) {
+    params.push(filters.priority);
+    sql += ` AND d.priority = $${params.length}`;
+    countParams.push(filters.priority);
+    countSql += ` AND d.priority = $${countParams.length}`;
+  }
+
+  sql += ` ORDER BY c.name, d.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  params.push(limit, offset);
+
+  const [{ rows }, { rows: countRows }] = await Promise.all([
+    query(sql, params),
+    query(countSql, countParams),
+  ]);
+
+  return paginatedResponse(rows, countRows[0].count, page, limit);
+}
+
 async function getById(id, condominiumId) {
   const [{ rows: [demand] }, { rows: updates }] = await Promise.all([
     query(Q.GET_BY_ID, [id, condominiumId]),
@@ -160,4 +198,4 @@ async function getStats(condominiumId) {
   return stats;
 }
 
-module.exports = { list, getById, create, update, addUpdate, getStats };
+module.exports = { list, listAllCondos, getById, create, update, addUpdate, getStats };
