@@ -35,13 +35,12 @@ interface Member {
   is_active: boolean;
   last_login_at: string;
   created_at: string;
-  condominium_id: string;
-  condominium_name: string;
+  condominiums: { id: string; name: string }[];
 }
 
 const emptyForm = {
   name: '', email: '', password: '', phone: '', whatsapp_number: '',
-  setor: '', funcao: '', role: 'FUNCIONARIO' as const, condominium_id: '',
+  setor: '', funcao: '', role: 'FUNCIONARIO' as const, condominium_ids: [] as string[],
 };
 
 export default function TeamPage() {
@@ -84,7 +83,7 @@ export default function TeamPage() {
   function openCreate() { setEditMember(null); setForm({ ...emptyForm }); setShowModal(true); }
   function openEdit(m: Member) {
     setEditMember(m);
-    setForm({ name: m.name, email: m.email, password: '', phone: formatBRPhone(m.phone || ''), whatsapp_number: formatBRPhone(m.whatsapp_number || ''), setor: m.setor || '', funcao: m.funcao || '', role: m.role, condominium_id: m.condominium_id || '' });
+    setForm({ name: m.name, email: m.email, password: '', phone: formatBRPhone(m.phone || ''), whatsapp_number: formatBRPhone(m.whatsapp_number || ''), setor: m.setor || '', funcao: m.funcao || '', role: m.role, condominium_ids: (m.condominiums || []).map(c => c.id) });
     setShowModal(true);
   }
   function closeModal() { setShowModal(false); setEditMember(null); setForm({ ...emptyForm }); }
@@ -234,11 +233,55 @@ export default function TeamPage() {
                   <input value={form.whatsapp_number} onChange={e => setForm(p => ({ ...p, whatsapp_number: maskBRPhone(e.target.value) }))} style={inp} placeholder="(11) 9xxxx-xxxx" maxLength={15} inputMode="tel" />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>Condomínio</label>
-                  <select value={form.condominium_id} onChange={e => setForm(p => ({ ...p, condominium_id: e.target.value }))} style={{ ...inp, cursor: 'pointer' }}>
-                    <option value="">Sem condomínio vinculado</option>
-                    {condos.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: T2 }}>
+                      Condomínios responsável
+                      {form.condominium_ids.length > 0 && (
+                        <span style={{ marginLeft: 6, background: '#3B82F615', color: '#3B82F6', borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                          {form.condominium_ids.length === condos.length ? 'Todos' : form.condominium_ids.length}
+                        </span>
+                      )}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setForm(p => ({
+                        ...p,
+                        condominium_ids: p.condominium_ids.length === condos.length ? [] : condos.map((c: any) => c.id)
+                      }))}
+                      style={{ fontSize: 11, fontWeight: 600, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    >
+                      {form.condominium_ids.length === condos.length ? 'Desmarcar todos' : 'Selecionar todos'}
+                    </button>
+                  </div>
+                  <div style={{ border: `1.5px solid ${B}`, borderRadius: 8, maxHeight: 160, overflowY: 'auto', background: S }}>
+                    {condos.length === 0 ? (
+                      <p style={{ padding: '12px 14px', fontSize: 13, color: T3, margin: 0 }}>Nenhum condomínio cadastrado</p>
+                    ) : condos.map((c: any) => {
+                      const checked = form.condominium_ids.includes(c.id);
+                      return (
+                        <label
+                          key={c.id}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', borderBottom: `1px solid ${B}`, transition: 'background 0.1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = L)}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setForm(p => ({
+                              ...p,
+                              condominium_ids: checked
+                                ? p.condominium_ids.filter(id => id !== c.id)
+                                : [...p.condominium_ids, c.id]
+                            }))}
+                            style={{ width: 15, height: 15, accentColor: '#3B82F6', cursor: 'pointer', flexShrink: 0 }}
+                          />
+                          <span style={{ fontSize: 13, color: T, fontWeight: checked ? 600 : 400 }}>{c.name}</span>
+                          {checked && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#3B82F6', fontWeight: 700 }}>✓</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: T2, marginBottom: 6 }}>Setor</label>
@@ -335,11 +378,20 @@ function MemberCard({ member: m, onEdit, onToggle, borderBottom }: {
             <span style={{ fontSize: 10, fontWeight: 700, color: '#999', background: '#F0F0F0', borderRadius: 4, padding: '1px 5px' }}>INATIVO</span>
           )}
         </div>
-        {m.funcao && <p style={{ fontSize: 12, color: '#666', margin: '0 0 2px' }}>{m.funcao}</p>}
-        {m.condominium_name && (
-          <p style={{ fontSize: 11, color: '#3B82F6', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <Building2 size={10} /> {m.condominium_name}
-          </p>
+        {m.funcao && <p style={{ fontSize: 12, color: '#666', margin: '0 0 4px' }}>{m.funcao}</p>}
+        {m.condominiums && m.condominiums.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 4 }}>
+            {m.condominiums.slice(0, 2).map(c => (
+              <span key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, color: '#3B82F6', background: '#3B82F610', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>
+                <Building2 size={9} /> {c.name}
+              </span>
+            ))}
+            {m.condominiums.length > 2 && (
+              <span style={{ fontSize: 10, color: '#999', background: '#F0F0F0', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>
+                +{m.condominiums.length - 2}
+              </span>
+            )}
+          </div>
         )}
         <p style={{ fontSize: 11, color: '#999', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</p>
       </div>
