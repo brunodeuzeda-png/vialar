@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -64,6 +64,13 @@ export default function SetorDashboard() {
   });
 
   const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
+
+  const openPicker = useCallback((demandId: string, btn: HTMLElement) => {
+    const r = btn.getBoundingClientRect();
+    setPickerPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 220) });
+    setAssigningId(demandId);
+  }, []);
 
   const updateMutation = useMutation({
     mutationFn: ({ demandId, condominiumId, status, assignedToId }: { demandId: string; condominiumId: string; status?: string; assignedToId?: string | null }) =>
@@ -72,6 +79,7 @@ export default function SetorDashboard() {
       qc.invalidateQueries({ queryKey: ['setor-demands', id] });
       toast.success(vars.assignedToId !== undefined ? 'Responsável atribuído' : 'Status atualizado');
       setAssigningId(null);
+      setPickerPos(null);
     },
   });
 
@@ -125,7 +133,53 @@ export default function SetorDashboard() {
 
   return (
     <div style={{ width: '100%', height: '100%', background: L, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {assigningId && <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setAssigningId(null)} />}
+      {assigningId && pickerPos && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => { setAssigningId(null); setPickerPos(null); }} />
+          <div style={{ position: 'fixed', top: pickerPos.top, left: pickerPos.left, zIndex: 50, background: S, border: `1px solid ${B}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 200, padding: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px', borderBottom: `1px solid ${B}`, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T3 }}>ATRIBUIR A</span>
+              <button onClick={() => { setAssigningId(null); setPickerPos(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T3, padding: 2, display: 'flex' }}><X size={12} /></button>
+            </div>
+            {(() => {
+              const d = demandsFiltered.find((x: any) => x.id === assigningId);
+              if (!d) return null;
+              return (
+                <>
+                  {d.assigned_to_id && (
+                    <button
+                      onClick={() => updateMutation.mutate({ demandId: d.id, condominiumId: d.condominium_id, assignedToId: null })}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, color: '#EF4444', fontWeight: 600, textAlign: 'left' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#FFF0F0')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                      × Remover responsável
+                    </button>
+                  )}
+                  {sectorTeam.length === 0
+                    ? <p style={{ fontSize: 12, color: T3, padding: '8px 10px', margin: 0 }}>Nenhum membro no setor</p>
+                    : sectorTeam.map((m: any) => (
+                      <button
+                        key={m.id}
+                        onClick={() => updateMutation.mutate({ demandId: d.id, condominiumId: d.condominium_id, assignedToId: m.id })}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: d.assigned_to_id === m.id ? AC + '20' : 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: d.assigned_to_id === m.id ? 700 : 500, color: T, textAlign: 'left' }}
+                        onMouseEnter={e => { if (d.assigned_to_id !== m.id) e.currentTarget.style.background = L; }}
+                        onMouseLeave={e => { if (d.assigned_to_id !== m.id) e.currentTarget.style.background = 'none'; }}
+                      >
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: `hsl(${m.name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                          {m.name[0].toUpperCase()}
+                        </div>
+                        {m.name.split(' ')[0]}
+                        {d.assigned_to_id === m.id && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>✓</span>}
+                      </button>
+                    ))
+                  }
+                </>
+              );
+            })()}
+          </div>
+        </>
+      )}
       <Header title={setor.name} />
 
       {/* ── Compact top bar ── */}
@@ -294,62 +348,25 @@ export default function SetorDashboard() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
 
-                              {/* Assignee picker */}
-                              <div style={{ position: 'relative' }}>
-                                {assigningId === d.id ? (
-                                  <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 50, background: S, border: `1px solid ${B}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 180, padding: 6 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px', borderBottom: `1px solid ${B}`, marginBottom: 4 }}>
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: T3 }}>ATRIBUIR A</span>
-                                      <button onClick={() => setAssigningId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T3, padding: 2, display: 'flex' }}><X size={12} /></button>
+                              {/* Assignee button — dropdown rendered at root via fixed position */}
+                              <button
+                                onClick={e => openPicker(d.id, e.currentTarget)}
+                                title={d.assigned_name ? `Responsável: ${d.assigned_name}` : 'Atribuir responsável'}
+                                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 8, border: `1.5px solid ${d.assigned_name ? '#3B82F630' : B}`, background: d.assigned_name ? '#3B82F608' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: d.assigned_name ? '#3B82F6' : T3, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+                                onMouseEnter={e => (e.currentTarget.style.borderColor = '#3B82F6')}
+                                onMouseLeave={e => (e.currentTarget.style.borderColor = d.assigned_name ? '#3B82F630' : B)}
+                              >
+                                {d.assigned_name ? (
+                                  <>
+                                    <div style={{ width: 16, height: 16, borderRadius: 4, background: `hsl(${d.assigned_name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff' }}>
+                                      {d.assigned_name[0].toUpperCase()}
                                     </div>
-                                    {d.assigned_to_id && (
-                                      <button
-                                        onClick={() => updateMutation.mutate({ demandId: d.id, condominiumId: d.condominium_id, assignedToId: null })}
-                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, color: '#EF4444', fontWeight: 600, textAlign: 'left' }}
-                                        onMouseEnter={e => (e.currentTarget.style.background = '#FFF0F0')}
-                                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                                      >
-                                        × Remover responsável
-                                      </button>
-                                    )}
-                                    {sectorTeam.length === 0 ? (
-                                      <p style={{ fontSize: 12, color: T3, padding: '8px 10px', margin: 0 }}>Nenhum membro no setor</p>
-                                    ) : sectorTeam.map((m: any) => (
-                                      <button
-                                        key={m.id}
-                                        onClick={() => updateMutation.mutate({ demandId: d.id, condominiumId: d.condominium_id, assignedToId: m.id })}
-                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: d.assigned_to_id === m.id ? AC + '20' : 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: d.assigned_to_id === m.id ? 700 : 500, color: T, textAlign: 'left' }}
-                                        onMouseEnter={e => { if (d.assigned_to_id !== m.id) e.currentTarget.style.background = L; }}
-                                        onMouseLeave={e => { if (d.assigned_to_id !== m.id) e.currentTarget.style.background = 'none'; }}
-                                      >
-                                        <div style={{ width: 22, height: 22, borderRadius: 6, background: `hsl(${m.name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-                                          {m.name[0].toUpperCase()}
-                                        </div>
-                                        {m.name.split(' ')[0]}
-                                        {d.assigned_to_id === m.id && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>✓</span>}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : null}
-                                <button
-                                  onClick={() => setAssigningId(assigningId === d.id ? null : d.id)}
-                                  title={d.assigned_name ? `Responsável: ${d.assigned_name}` : 'Atribuir responsável'}
-                                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 8, border: `1.5px solid ${d.assigned_name ? '#3B82F620' : B}`, background: d.assigned_name ? '#3B82F608' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: d.assigned_name ? '#3B82F6' : T3, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
-                                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#3B82F6')}
-                                  onMouseLeave={e => (e.currentTarget.style.borderColor = d.assigned_name ? '#3B82F620' : B)}
-                                >
-                                  {d.assigned_name ? (
-                                    <>
-                                      <div style={{ width: 16, height: 16, borderRadius: 4, background: `hsl(${d.assigned_name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff' }}>
-                                        {d.assigned_name[0].toUpperCase()}
-                                      </div>
-                                      {d.assigned_name.split(' ')[0]}
-                                    </>
-                                  ) : (
-                                    <><UserPlus size={11} /> Atribuir</>
-                                  )}
-                                </button>
-                              </div>
+                                    {d.assigned_name.split(' ')[0]}
+                                  </>
+                                ) : (
+                                  <><UserPlus size={11} /> Atribuir</>
+                                )}
+                              </button>
 
                               {canAdvance && (
                                 <button

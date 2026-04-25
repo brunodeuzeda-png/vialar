@@ -1,11 +1,13 @@
 const router = require('express').Router();
 const service = require('./demands.service');
+const teamService = require('../team/team.service');
 const authMiddleware = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
 const { isSindico, isAnyRole } = require('../../middleware/rbac');
 const aiService = require('../ai/ai.service');
 const setoresService = require('../setores/setores.service');
 const { emitToCondominium } = require('../../websocket/ws.server');
+const { query } = require('../../shared/db/pool');
 
 router.use(authMiddleware, tenantMiddleware);
 
@@ -39,11 +41,34 @@ router.post('/', isAnyRole, async (req, res, next) => {
           { ...demand, category: triage?.category || demand.category, priority: triage?.priority || demand.priority },
           setores.length ? setores : ['Manutenção','Financeiro','Jurídico','Atendimento','Obras e Reformas','Segurança','Administrativo','TI']
         );
-        if (routing) emitToCondominium(req.tenant.id, 'demand:routed', {
-          id: demand.id,
-          setor: routing.assigned_setor,
-          setores: routing.assigned_setores || [routing.assigned_setor].filter(Boolean),
-        });
+        if (routing) {
+          emitToCondominium(req.tenant.id, 'demand:routed', {
+            id: demand.id,
+            setor: routing.assigned_setor,
+            setores: routing.assigned_setores || [routing.assigned_setor].filter(Boolean),
+          });
+
+          // Auto-assign: pick the active member of the principal setor with fewest open demands
+          if (routing.assigned_setor) {
+            const members = await teamService.getBySetor(administradoraId, routing.assigned_setor);
+            if (members.length > 0) {
+              const { rows: load } = await query(
+                `SELECT assigned_to_id, COUNT(*) AS cnt
+                 FROM demands
+                 WHERE assigned_to_id = ANY($1) AND status NOT IN ('CONCLUIDA','CANCELADA')
+                 GROUP BY assigned_to_id`,
+                [members.map(m => m.id)]
+              );
+              const loadMap = Object.fromEntries(load.map(r => [r.assigned_to_id, Number(r.cnt)]));
+              const pick = members.reduce((a, b) => (loadMap[a.id] || 0) <= (loadMap[b.id] || 0) ? a : b);
+              await query(
+                `UPDATE demands SET assigned_to_id = $1, updated_at = NOW() WHERE id = $2`,
+                [pick.id, demand.id]
+              );
+              emitToCondominium(req.tenant.id, 'demand:assigned', { id: demand.id, assigned_to_id: pick.id, assigned_name: pick.name });
+            }
+          }
+        }
       }
     }).catch(() => {});
 
