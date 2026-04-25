@@ -31,6 +31,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading) return <PageLoader />;
   if (!user) return null;
 
+  // Detail pages get full-screen layout (no sidebar)
+  const isFullscreen = /^\/setores\/.+/.test(pathname);
+
+  if (isFullscreen) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#F8F8F4' }}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh' }}>
 

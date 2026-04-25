@@ -78,7 +78,7 @@ export default function SetorDashboard() {
 
   // Skeleton
   if (!setor) return (
-    <div style={{ minHeight: '100vh', background: L }}>
+    <div style={{ width: '100%', height: '100%', background: L }}>
       <Header title="Setor" />
       <div style={{ display: 'flex', gap: 0, height: 'calc(100vh - 60px)' }}>
         <div style={{ flex: 1, padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -107,7 +107,7 @@ export default function SetorDashboard() {
   const accent = setor.color;
 
   return (
-    <div style={{ minHeight: '100vh', background: L, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', height: '100%', background: L, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Header title={setor.name} />
 
       {/* ── Compact top bar ── */}
