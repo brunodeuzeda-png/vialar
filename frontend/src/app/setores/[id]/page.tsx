@@ -10,7 +10,7 @@ import Header from '@/components/layout/Header';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Users, CheckCircle2, ChevronRight, RefreshCw,
-  Activity, Zap, Flame, CircleDot, Clock, TrendingUp,
+  Zap, Flame, Clock, AlertTriangle, Activity, CircleDot,
 } from 'lucide-react';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
@@ -18,13 +18,13 @@ const T = '#0A0A0A', T2 = '#666', T3 = '#999';
 const AC = '#BBFF00';
 
 const PIPELINE = [
-  { status: 'ABERTA',               label: 'Aberta',     color: '#3B82F6' },
-  { status: 'TRIAGEM',              label: 'Triagem',    color: '#8B5CF6' },
-  { status: 'EM_ANDAMENTO',         label: 'Andamento',  color: '#F59E0B' },
-  { status: 'AGUARDANDO_ORCAMENTO', label: 'Orçamento',  color: '#F97316' },
-  { status: 'AGUARDANDO_APROVACAO', label: 'Aprovação',  color: '#EAB308' },
-  { status: 'AGENDADA',             label: 'Agendada',   color: '#22C55E' },
-  { status: 'CONCLUIDA',            label: 'Concluída',  color: '#16A34A' },
+  { status: 'ABERTA',               label: 'Aberta',     color: '#3B82F6', short: 'Aberta' },
+  { status: 'TRIAGEM',              label: 'Triagem',    color: '#8B5CF6', short: 'Triagem' },
+  { status: 'EM_ANDAMENTO',         label: 'Andamento',  color: '#F59E0B', short: 'Andamento' },
+  { status: 'AGUARDANDO_ORCAMENTO', label: 'Orçamento',  color: '#F97316', short: 'Orçamento' },
+  { status: 'AGUARDANDO_APROVACAO', label: 'Aprovação',  color: '#EAB308', short: 'Aprovação' },
+  { status: 'AGENDADA',             label: 'Agendada',   color: '#22C55E', short: 'Agendada' },
+  { status: 'CONCLUIDA',            label: 'Concluída',  color: '#16A34A', short: 'Concluída' },
 ];
 
 const PRIO: Record<string, { label: string; color: string; bg: string }> = {
@@ -52,13 +52,7 @@ export default function SetorDashboard() {
   const { data: demandsData, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ['setor-demands', id, condoId, statusFilter, priorityFilter],
     queryFn: () => api.get('/demands', {
-      params: {
-        condominium_id: condoId,
-        assigned_setor: setor?.name,
-        status: statusFilter || undefined,
-        priority: priorityFilter || undefined,
-        limit: 100,
-      }
+      params: { condominium_id: condoId, assigned_setor: setor?.name, status: statusFilter || undefined, priority: priorityFilter || undefined, limit: 100 }
     }).then(r => r.data),
     enabled: !!condoId && !!setor?.name,
     refetchInterval: 15000,
@@ -82,13 +76,17 @@ export default function SetorDashboard() {
     if (dataUpdatedAt) setLastRefresh(new Date(dataUpdatedAt));
   }, [dataUpdatedAt]);
 
+  // Skeleton
   if (!setor) return (
     <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Setor" />
-      <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {[100, 80, 500].map(h => (
-          <div key={h} style={{ height: h, background: S, border: `1px solid ${B}`, borderRadius: 14 }} />
-        ))}
+      <div style={{ display: 'flex', gap: 0, height: 'calc(100vh - 60px)' }}>
+        <div style={{ flex: 1, padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {Array(5).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12 }} />)}
+        </div>
+        <div style={{ width: 280, borderLeft: `1px solid ${B}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 44, borderRadius: 8 }} />)}
+        </div>
       </div>
     </div>
   );
@@ -98,221 +96,110 @@ export default function SetorDashboard() {
 
   const open      = demands.filter(d => !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
   const done      = demands.filter(d => d.status === 'CONCLUIDA').length;
-  const critica   = demands.filter(d => d.priority === 'CRITICA' && !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
-  const andamento = demands.filter(d => d.status === 'EM_ANDAMENTO').length;
-  const completionPct = demands.length > 0 ? Math.round((done / demands.length) * 100) : 0;
+  const critical  = demands.filter(d => d.priority === 'CRITICA' && !['CONCLUIDA', 'CANCELADA'].includes(d.status)).length;
+  const pct       = demands.length > 0 ? Math.round((done / demands.length) * 100) : 0;
 
   const pipelineWithCounts = PIPELINE.map(p => ({
     ...p,
     count: demands.filter(d => d.status === p.status).length,
   }));
 
-  const inp: React.CSSProperties = {
-    padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 700,
-    cursor: 'pointer', border: `1.5px solid`, transition: 'all 0.15s',
-  };
+  const accent = setor.color;
 
   return (
-    <div style={{ minHeight: '100vh', background: L }}>
+    <div style={{ minHeight: '100vh', background: L, display: 'flex', flexDirection: 'column' }}>
       <Header title={setor.name} />
-      <main style={{ padding: '28px 40px' }} className="page-main">
 
-        {/* ── Page header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-          <Link href="/setores" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: T3, textDecoration: 'none', fontWeight: 500 }}>
-            <ArrowLeft size={14} /> Setores
-          </Link>
-          <span style={{ color: B, fontSize: 16 }}>/</span>
+      {/* ── Compact top bar ── */}
+      <div style={{ background: S, borderBottom: `1px solid ${B}`, padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <Link href="/setores" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: T3, textDecoration: 'none', flexShrink: 0 }}>
+          <ArrowLeft size={13} /> Setores
+        </Link>
+        <span style={{ color: B }}>·</span>
 
-          {/* Sector identity */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '8px 18px 8px 12px',
-            background: S, border: `1.5px solid ${setor.color}40`,
-            borderRadius: 12, boxShadow: `0 2px 12px ${setor.color}15`,
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: setor.color + '18',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20,
-            }}>
-              {setor.icon}
-            </div>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: T, margin: 0, letterSpacing: '-0.02em', lineHeight: 1 }}>
-                {setor.name}
-              </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 3px #22C55E25', animation: 'pulse 2s infinite' }} />
-                <span style={{ fontSize: 11, color: T3 }}>Ao vivo · {timeAgo(lastRefresh.toISOString())}</span>
-              </div>
-            </div>
+        {/* Sector pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 14px 6px 10px', background: accent + '12', border: `1.5px solid ${accent}35`, borderRadius: 99 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: accent + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>
+            {setor.icon}
           </div>
-
-          {/* Team avatars */}
-          {sectorTeam.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex' }}>
-                {sectorTeam.slice(0, 5).map((m: any, i: number) => (
-                  <div key={m.id} title={m.name} style={{
-                    width: 30, height: 30, borderRadius: '50%',
-                    background: setor.color + '25',
-                    border: `2px solid ${S}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 800, color: setor.color,
-                    marginLeft: i > 0 ? -8 : 0,
-                    position: 'relative', zIndex: sectorTeam.length - i,
-                  }}>
-                    {m.name?.[0]?.toUpperCase()}
-                  </div>
-                ))}
-                {sectorTeam.length > 5 && (
-                  <div style={{
-                    width: 30, height: 30, borderRadius: '50%',
-                    background: L, border: `2px solid ${S}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 700, color: T3, marginLeft: -8,
-                  }}>+{sectorTeam.length - 5}</div>
-                )}
-              </div>
-              <span style={{ fontSize: 12, color: T3 }}>{sectorTeam.length} membro{sectorTeam.length !== 1 ? 's' : ''}</span>
-            </div>
-          )}
-
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Completion */}
-            {demands.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 16px', background: S, border: `1px solid ${B}`, borderRadius: 99 }}>
-                <div style={{ width: 64, height: 5, background: B, borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${completionPct}%`, background: '#16A34A', borderRadius: 99, transition: 'width 0.5s' }} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#16A34A' }}>{completionPct}%</span>
-                <span style={{ fontSize: 12, color: T3 }}>concluído</span>
-              </div>
-            )}
-            <button
-              onClick={() => qc.invalidateQueries({ queryKey: ['setor-demands', id] })}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: S, border: `1.5px solid ${B}`, borderRadius: 9, fontSize: 13, fontWeight: 600, color: T2, cursor: 'pointer' }}
-            >
-              <RefreshCw size={13} /> Atualizar
-            </button>
-          </div>
+          <span style={{ fontSize: 14, fontWeight: 800, color: T }}>{setor.name}</span>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 2px #22C55E25', animation: 'pulse 2s infinite' }} />
         </div>
 
-        {/* ── KPI cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }} className="kpi-grid">
+        {/* KPI pills */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {[
-            { label: 'EM ABERTO',    value: open,      icon: <CircleDot size={20} color="#3B82F6" />,   bg: '#EFF6FF', color: '#3B82F6' },
-            { label: 'EM ANDAMENTO', value: andamento, icon: <Activity size={20} color="#F59E0B" />,    bg: '#FFFBEB', color: '#F59E0B' },
-            { label: 'CONCLUÍDOS',   value: done,      icon: <CheckCircle2 size={20} color="#16A34A" />, bg: '#F0FDF4', color: '#16A34A' },
-            { label: 'CRÍTICOS',     value: critica,   icon: <Flame size={20} color="#DC2626" />,       bg: '#FEF2F2', color: '#DC2626' },
-          ].map(kpi => (
-            <div key={kpi.label} style={{ background: S, border: `1px solid ${B}`, borderRadius: 16, padding: '22px 24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {kpi.icon}
-                </div>
-                {kpi.label === 'EM ABERTO' && (
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 3px #22C55E25' }} />
-                )}
-              </div>
-              <p style={{ fontSize: 38, fontWeight: 900, color: kpi.color, letterSpacing: '-0.04em', lineHeight: 1, margin: '0 0 6px' }}>{kpi.value}</p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.06em', margin: 0 }}>{kpi.label}</p>
+            { icon: <CircleDot size={12} />, value: open,     label: 'abertos',   color: '#3B82F6' },
+            { icon: <Activity size={12} />,  value: demands.filter(d => d.status === 'EM_ANDAMENTO').length, label: 'andamento', color: '#F59E0B' },
+            { icon: <Flame size={12} />,     value: critical, label: 'críticos',  color: '#DC2626' },
+            { icon: <CheckCircle2 size={12} />, value: done,  label: 'concluídos',color: '#16A34A' },
+          ].map(k => (
+            <div key={k.label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: L, border: `1px solid ${B}`, borderRadius: 99 }}>
+              <span style={{ color: k.color }}>{k.icon}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: k.color }}>{k.value}</span>
+              <span style={{ fontSize: 11, color: T3 }}>{k.label}</span>
             </div>
           ))}
         </div>
 
-        {/* ── Pipeline funnel ── */}
-        <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-            <TrendingUp size={15} color={T3} />
-            <h3 style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em', margin: 0, textTransform: 'uppercase' }}>
-              Funil de etapas
-            </h3>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: T3 }}>{demands.filter(d => !['CONCLUIDA','CANCELADA'].includes(d.status)).length} ativos</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 6 }} className="status-tabs">
-            {pipelineWithCounts.map(stage => {
-              const isActive = statusFilter === stage.status;
-              const hasItems = stage.count > 0;
-              return (
-                <button
-                  key={stage.status}
-                  onClick={() => setStatusFilter(isActive ? '' : stage.status)}
-                  style={{
-                    flex: 1, minWidth: 0,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                    padding: '14px 10px',
-                    background: isActive ? stage.color + '15' : L,
-                    border: `1.5px solid ${isActive ? stage.color : B}`,
-                    borderRadius: 12, cursor: 'pointer',
-                    transition: 'all 0.15s',
-                    boxShadow: isActive ? `0 4px 12px ${stage.color}20` : 'none',
-                  }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.borderColor = stage.color + '80'; e.currentTarget.style.background = stage.color + '08'; } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.borderColor = B; e.currentTarget.style.background = L; } }}
-                >
-                  <span style={{ fontSize: 28, fontWeight: 900, color: hasItems ? stage.color : T3, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                    {stage.count}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? stage.color : T3, textAlign: 'center', lineHeight: 1.3 }}>
-                    {stage.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 11, color: T3 }}>{timeAgo(lastRefresh.toISOString())}</span>
+          <button
+            onClick={() => qc.invalidateQueries({ queryKey: ['setor-demands', id] })}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: L, border: `1px solid ${B}`, borderRadius: 7, fontSize: 12, fontWeight: 600, color: T2, cursor: 'pointer' }}
+          >
+            <RefreshCw size={11} /> Atualizar
+          </button>
         </div>
+      </div>
 
-        {/* ── Demand list ── */}
-        <div>
-          {/* Filter row */}
+      {/* ── Two-column body ── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        {/* ── LEFT: demand list (main) ── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+
+          {/* Filter bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: T, margin: 0 }}>
-              Chamados
-              <span style={{ fontSize: 13, fontWeight: 400, color: T3, marginLeft: 8 }}>
-                {statusFilter || priorityFilter ? '(filtrado)' : `${demands.length} total`}
-              </span>
-            </h3>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: T }}>Chamados</span>
+            <span style={{ fontSize: 13, color: T3 }}>{statusFilter || priorityFilter ? '(filtrado)' : `· ${demands.length} total`}</span>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
               {Object.entries(PRIO).map(([key, cfg]) => (
                 <button key={key}
                   onClick={() => setPriorityFilter(priorityFilter === key ? '' : key)}
                   style={{
-                    ...inp,
+                    padding: '4px 11px', borderRadius: 99, fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                     background: priorityFilter === key ? cfg.color : 'transparent',
                     color: priorityFilter === key ? S : cfg.color,
-                    borderColor: cfg.color + (priorityFilter === key ? '' : '60'),
-                  }}
-                >
+                    border: `1.5px solid ${cfg.color + (priorityFilter === key ? '' : '55')}`,
+                  }}>
                   {cfg.label}
                 </button>
               ))}
               {(statusFilter || priorityFilter) && (
                 <button onClick={() => { setStatusFilter(''); setPriorityFilter(''); }}
-                  style={{ ...inp, background: L, color: T2, borderColor: B }}>
+                  style={{ padding: '4px 11px', borderRadius: 99, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: L, border: `1px solid ${B}`, color: T2 }}>
                   × Limpar
                 </button>
               )}
             </div>
           </div>
 
-          <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 16, overflow: 'hidden' }}>
+          {/* Demand list */}
+          <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
             {isLoading ? (
               Array(5).fill(0).map((_, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 24px', borderBottom: `1px solid ${B}` }}>
-                  <div style={{ width: 4, height: 40, background: B, borderRadius: 99 }} />
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: `1px solid ${B}` }}>
+                  <div style={{ width: 3, height: 40, background: B, borderRadius: 99 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ height: 14, background: L, borderRadius: 6, width: '50%', marginBottom: 10 }} />
-                    <div style={{ height: 11, background: L, borderRadius: 6, width: '30%' }} />
+                    <div className="skeleton" style={{ height: 13, width: '55%', borderRadius: 4, marginBottom: 8 }} />
+                    <div className="skeleton" style={{ height: 10, width: '35%', borderRadius: 4 }} />
                   </div>
                 </div>
               ))
             ) : demands.length === 0 ? (
-              <div style={{ padding: '64px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <CheckCircle2 size={40} color={B} />
+              <div style={{ padding: '60px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <CheckCircle2 size={36} color={B} />
                 <p style={{ fontSize: 15, fontWeight: 700, color: T, margin: 0 }}>
                   {statusFilter || priorityFilter ? 'Nenhum chamado com esses filtros' : 'Nenhum chamado atribuído'}
                 </p>
@@ -323,86 +210,60 @@ export default function SetorDashboard() {
             ) : demands.map((d: any, i: number) => {
               const pCfg = PRIO[d.priority] || { label: d.priority, color: T3, bg: L };
               const stCfg = PIPELINE.find(p => p.status === d.status);
-              const isCritical = d.priority === 'CRITICA';
               const idx = PIPELINE.findIndex(p => p.status === d.status);
               const next = PIPELINE[idx + 1];
               const canAdvance = !!next && !['CONCLUIDA', 'CANCELADA'].includes(d.status);
 
               return (
-                <div
-                  key={d.id}
-                  style={{
-                    display: 'flex', alignItems: 'stretch',
-                    borderBottom: i < demands.length - 1 ? `1px solid ${B}` : 'none',
-                    transition: 'background 0.12s',
-                  }}
+                <div key={d.id} style={{ display: 'flex', alignItems: 'stretch', borderBottom: i < demands.length - 1 ? `1px solid ${B}` : 'none', transition: 'background 0.1s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF8')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {/* Priority color strip */}
-                  <div style={{ width: 4, background: pCfg.color, flexShrink: 0, opacity: 0.75 }} />
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
 
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 18, padding: '16px 24px', minWidth: 0 }}>
-                    {/* Text block */}
+                  {/* Priority strip */}
+                  <div style={{ width: 3, flexShrink: 0, background: pCfg.color, opacity: 0.7 }} />
+
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 16, padding: '13px 20px', minWidth: 0 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {d.title}
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
                         {d.ai_triage_data && (
-                          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, background: AC + '25', borderRadius: 5, padding: '2px 7px', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>
+                          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, background: AC + '25', borderRadius: 5, padding: '1px 6px', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>
                             <Zap size={9} /> IA
                           </span>
                         )}
-                        {isCritical && <Flame size={13} color="#DC2626" style={{ flexShrink: 0 }} />}
+                        {d.priority === 'CRITICA' && <Flame size={12} color="#DC2626" style={{ flexShrink: 0 }} />}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 99, background: (stCfg?.color || T3) + '18', fontSize: 11, fontWeight: 700, color: stCfg?.color || T3 }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: stCfg?.color || T3 }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, background: (stCfg?.color || T3) + '18', fontSize: 10, fontWeight: 700, color: stCfg?.color || T3 }}>
+                          <span style={{ width: 4, height: 4, borderRadius: '50%', background: stCfg?.color || T3 }} />
                           {stCfg?.label || d.status}
                         </span>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 99, background: pCfg.bg, fontSize: 11, fontWeight: 700, color: pCfg.color }}>
+                        <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 99, background: pCfg.bg, fontSize: 10, fontWeight: 700, color: pCfg.color }}>
                           {pCfg.label}
                         </span>
-                        {d.requester_name && (
-                          <span style={{ fontSize: 12, color: T3 }}>
-                            {d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}
-                          </span>
-                        )}
-                        <span style={{ fontSize: 12, color: T3, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Clock size={11} /> {timeAgo(d.created_at)}
+                        {d.requester_name && <span style={{ fontSize: 11, color: T3 }}>{d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}</span>}
+                        <span style={{ fontSize: 11, color: T3, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <Clock size={10} /> {timeAgo(d.created_at)}
                         </span>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       {canAdvance && (
                         <button
                           onClick={() => updateMutation.mutate({ demandId: d.id, status: next.status })}
-                          title={`Avançar para: ${next.label}`}
-                          style={{
-                            padding: '6px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
-                            background: next.color + '15', color: next.color,
-                            border: `1.5px solid ${next.color}40`,
-                            cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
-                          }}
+                          style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: next.color + '15', color: next.color, border: `1.5px solid ${next.color}40`, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = next.color + '28'; e.currentTarget.style.borderColor = next.color; }}
                           onMouseLeave={e => { e.currentTarget.style.background = next.color + '15'; e.currentTarget.style.borderColor = next.color + '40'; }}
                         >
-                          {next.label} →
+                          {next.short} →
                         </button>
                       )}
-                      <Link href={`/demands/${d.id}`} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        width: 34, height: 34, borderRadius: 9,
-                        background: L, border: `1.5px solid ${B}`,
-                        color: T3, textDecoration: 'none', transition: 'all 0.15s',
-                      }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T3; (e.currentTarget as HTMLElement).style.color = T; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = B; (e.currentTarget as HTMLElement).style.color = T3; }}
-                      >
-                        <ChevronRight size={16} />
+                      <Link href={`/demands/${d.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8, background: L, border: `1px solid ${B}`, color: T3, textDecoration: 'none', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T3; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = B; }}>
+                        <ChevronRight size={14} />
                       </Link>
                     </div>
                   </div>
@@ -410,49 +271,103 @@ export default function SetorDashboard() {
               );
             })}
           </div>
+        </div>
 
-          {/* Team strip */}
-          {sectorTeam.length > 0 && (
-            <div style={{
-              marginTop: 16, background: S, border: `1px solid ${B}`,
-              borderRadius: 14, padding: '16px 22px',
-              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Users size={14} color={T3} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: T3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Equipe · {sectorTeam.length}
-                </span>
+        {/* ── RIGHT sidebar ── */}
+        <div style={{ width: 268, flexShrink: 0, borderLeft: `1px solid ${B}`, background: S, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Pipeline stages — vertical */}
+          <div style={{ padding: '18px 16px', borderBottom: `1px solid ${B}` }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 12px' }}>Funil de etapas</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {pipelineWithCounts.map(stage => {
+                const isActive = statusFilter === stage.status;
+                const total = demands.length || 1;
+                const barW = Math.round((stage.count / total) * 100);
+                return (
+                  <button
+                    key={stage.status}
+                    onClick={() => setStatusFilter(isActive ? '' : stage.status)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                      borderRadius: 8, border: `1.5px solid ${isActive ? stage.color : 'transparent'}`,
+                      background: isActive ? stage.color + '12' : 'transparent',
+                      cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left', width: '100%',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = L; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: isActive ? stage.color : T2 }}>{stage.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: stage.count > 0 ? stage.color : T3, minWidth: 16, textAlign: 'right' }}>{stage.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div style={{ padding: '16px', borderBottom: `1px solid ${B}` }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 12px' }}>Resumo</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { label: 'Total de chamados', value: demands.length, color: T },
+                { label: 'Em aberto',         value: open,           color: '#3B82F6' },
+                { label: 'Em andamento',      value: demands.filter(d => d.status === 'EM_ANDAMENTO').length, color: '#F59E0B' },
+                { label: 'Críticos ativos',   value: critical,       color: '#DC2626' },
+                { label: 'Concluídos',        value: done,           color: '#16A34A' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: L, borderRadius: 7 }}>
+                  <span style={{ fontSize: 12, color: T2 }}>{item.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: item.color }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+            {demands.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ fontSize: 11, color: T3 }}>Conclusão</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#16A34A' }}>{pct}%</span>
+                </div>
+                <div style={{ height: 6, background: B, borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: accent, borderRadius: 99, transition: 'width 0.5s' }} />
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            )}
+          </div>
+
+          {/* Team */}
+          <div style={{ padding: '16px', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+              <Users size={12} color={T3} />
+              <p style={{ fontSize: 11, fontWeight: 700, color: T3, letterSpacing: '0.07em', textTransform: 'uppercase', margin: 0 }}>
+                Equipe · {sectorTeam.length}
+              </p>
+            </div>
+            {sectorTeam.length === 0 ? (
+              <p style={{ fontSize: 12, color: T3, textAlign: 'center', padding: '16px 0' }}>Nenhum membro neste setor</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {sectorTeam.map((m: any) => (
-                  <div key={m.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '6px 12px', background: L, border: `1px solid ${B}`, borderRadius: 99,
-                  }}>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: '50%',
-                      background: setor.color + '22',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 800, color: setor.color, flexShrink: 0,
-                    }}>
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: L, borderRadius: 9 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: accent + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: accent, flexShrink: 0 }}>
                       {m.name?.[0]?.toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: T2 }}>{m.name}</span>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }} title="Ativo" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: T, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</p>
+                      <p style={{ fontSize: 10, color: T3, margin: 0 }}>{m.funcao || 'Funcionário'}</p>
+                    </div>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', flexShrink: 0 }} />
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </main>
+      </div>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.4; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
     </div>
   );
