@@ -3,19 +3,17 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { timeAgo } from '@/lib/utils';
 import { useCondominium } from '@/contexts/CondominiumContext';
 import Header from '@/components/layout/Header';
 import { toast } from 'sonner';
 import {
   Plus, Edit2, Trash2, X, Save, Loader2,
-  Users, MessageSquare, ChevronRight, Zap,
-  CheckCircle2, ArrowLeft,
+  Users, AlertTriangle, ChevronRight, CheckCircle2,
+  Activity,
 } from 'lucide-react';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
 const T = '#0A0A0A', T2 = '#666', T3 = '#999';
-const AC = '#BBFF00';
 
 const PRESET_COLORS = [
   '#F59E0B','#3B82F6','#8B5CF6','#EC4899',
@@ -26,20 +24,6 @@ const PRESET_ICONS = [
   '🔧','💰','⚖️','🎧','🏗️','🔒','📋','💻',
   '🧹','📊','🚪','🌿','🔑','📞','🛡️','⚡',
 ];
-
-const STATUS_CFG: Record<string, { label: string; dot: string; color: string }> = {
-  ABERTA:               { label: 'Aberta',           dot: '#3B82F6', color: '#1D4ED8' },
-  TRIAGEM:              { label: 'Triagem',           dot: '#8B5CF6', color: '#6D28D9' },
-  EM_ANDAMENTO:         { label: 'Em andamento',      dot: '#F59E0B', color: '#B45309' },
-  AGUARDANDO_ORCAMENTO: { label: 'Aguard. orçamento', dot: '#F97316', color: '#C2410C' },
-  AGUARDANDO_APROVACAO: { label: 'Aguard. aprovação', dot: '#EAB308', color: '#854D0E' },
-  AGENDADA:             { label: 'Agendada',          dot: '#22C55E', color: '#15803D' },
-  CONCLUIDA:            { label: 'Concluída',         dot: '#16A34A', color: '#166534' },
-  CANCELADA:            { label: 'Cancelada',         dot: '#9CA3AF', color: '#6B7280' },
-};
-const PRIO_COLOR: Record<string, string> = {
-  CRITICA: '#DC2626', ALTA: '#EA580C', MEDIA: '#D97706', BAIXA: '#16A34A',
-};
 
 interface Setor { id: string; name: string; icon: string; color: string; is_active: boolean; }
 
@@ -69,9 +53,7 @@ function SetorModal({ setor, onClose, onSave }: {
             <X size={18} />
           </button>
         </div>
-
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Preview */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: form.color + '15', border: `2px solid ${form.color}40`, borderRadius: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: form.color + '25', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
               {form.icon}
@@ -81,18 +63,14 @@ function SetorModal({ setor, onClose, onSave }: {
               <p style={{ fontSize: 12, color: T3, margin: 0 }}>Prévia do setor</p>
             </div>
           </div>
-
-          {/* Name */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>NOME</label>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em', marginBottom: 6 }}>NOME</label>
             <input style={inp} placeholder="Ex: Jardinagem" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               onFocus={e => (e.target.style.borderColor = T)} onBlur={e => (e.target.style.borderColor = B)} />
           </div>
-
-          {/* Icon picker */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>ÍCONE</label>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em', marginBottom: 8 }}>ÍCONE</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {PRESET_ICONS.map(icon => (
                 <button key={icon} onClick={() => setForm(f => ({ ...f, icon }))}
@@ -102,10 +80,8 @@ function SetorModal({ setor, onClose, onSave }: {
               ))}
             </div>
           </div>
-
-          {/* Color picker */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em' }}>COR</label>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: T2, letterSpacing: '0.04em', marginBottom: 8 }}>COR</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {PRESET_COLORS.map(color => (
                 <button key={color} onClick={() => setForm(f => ({ ...f, color }))}
@@ -113,8 +89,6 @@ function SetorModal({ setor, onClose, onSave }: {
               ))}
             </div>
           </div>
-
-          {/* Actions */}
           <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
             <button onClick={onClose} style={{ flex: 1, padding: '11px 0', background: L, border: `1.5px solid ${B}`, borderRadius: 9, fontSize: 14, fontWeight: 700, color: T2, cursor: 'pointer' }}>
               Cancelar
@@ -138,12 +112,10 @@ export default function SetoresPage() {
   const qc = useQueryClient();
   const { activeCondo } = useCondominium();
   const condoId = activeCondo?.id;
-
-  const [selected, setSelected] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Setor | null>(null);
 
-  const { data: setores = [], isLoading: setoresLoading } = useQuery<Setor[]>({
+  const { data: setores = [], isLoading } = useQuery<Setor[]>({
     queryKey: ['setores'],
     queryFn: () => api.get('/setores').then(r => r.data),
   });
@@ -152,17 +124,12 @@ export default function SetoresPage() {
     queryKey: ['demands-by-setor', condoId],
     queryFn: () => api.get('/demands/stats/by-setor', { params: { condominium_id: condoId } }).then(r => r.data),
     enabled: !!condoId,
+    refetchInterval: 30000,
   });
 
   const { data: team = [] } = useQuery<any[]>({
     queryKey: ['team'],
     queryFn: () => api.get('/team').then(r => r.data),
-  });
-
-  const { data: demandsData, isLoading: demandsLoading } = useQuery({
-    queryKey: ['demands-setor', selected, condoId],
-    queryFn: () => api.get('/demands', { params: { condominium_id: condoId, assigned_setor: selected, limit: 50 } }).then(r => r.data),
-    enabled: !!condoId && !!selected,
   });
 
   const createMut = useMutation({
@@ -179,33 +146,30 @@ export default function SetoresPage() {
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/setores/${id}`),
-    onSuccess: (_, id) => {
-      qc.invalidateQueries({ queryKey: ['setores'] });
-      if (selected === setores.find(s => s.id === id)?.name) setSelected(null);
-      toast.success('Setor excluído');
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['setores'] }); toast.success('Setor excluído'); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Erro ao excluir'),
   });
 
-  const statsMap = Object.fromEntries(stats.map(s => [s.assigned_setor, s]));
+  const statsMap = Object.fromEntries(stats.map((s: any) => [s.assigned_setor, s]));
   const teamBySetor = team.reduce((acc: any, m: any) => {
     if (m.setor) { acc[m.setor] = acc[m.setor] || []; acc[m.setor].push(m); }
     return acc;
   }, {} as Record<string, any[]>);
 
-  const selectedSetor = setores.find(s => s.name === selected);
-  const selectedDemands: any[] = demandsData?.data || [];
+  const totalOpen     = stats.reduce((sum: number, s: any) => sum + Number(s.open || 0), 0);
+  const totalCritical = stats.reduce((sum: number, s: any) => sum + Number(s.critical || 0), 0);
+  const totalDone     = stats.reduce((sum: number, s: any) => sum + Number(s.done || 0), 0);
 
   return (
     <div style={{ minHeight: '100vh', background: L }}>
       <Header title="Setores" />
       <main style={{ padding: '28px 32px' }} className="page-main">
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        {/* Page header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 900, color: T, letterSpacing: '-0.04em', margin: '0 0 4px' }}>Setores</h1>
-            <p style={{ fontSize: 14, color: T2, margin: 0 }}>{setores.length} setores cadastrados</p>
+            <p style={{ fontSize: 14, color: T2, margin: 0 }}>{setores.length} setores · clique para abrir o dashboard do setor</p>
           </div>
           <button
             onClick={() => { setEditing(null); setModalOpen(true); }}
@@ -215,194 +179,179 @@ export default function SetoresPage() {
           </button>
         </div>
 
-        {/* Sector grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
-          {setoresLoading && Array(8).fill(0).map((_, i) => (
-            <div key={i} style={{ height: 110, background: S, border: `1px solid ${B}`, borderRadius: 14 }} />
-          ))}
+        {/* Summary strip */}
+        {stats.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Em aberto',  value: totalOpen,     color: '#3B82F6', icon: <Activity size={14} /> },
+              { label: 'Críticos',   value: totalCritical, color: '#DC2626', icon: <AlertTriangle size={14} /> },
+              { label: 'Concluídos', value: totalDone,     color: '#16A34A', icon: <CheckCircle2 size={14} /> },
+            ].map(item => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: S, border: `1px solid ${B}`, borderRadius: 99 }}>
+                <span style={{ color: item.color }}>{item.icon}</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color: item.color, letterSpacing: '-0.02em' }}>{item.value}</span>
+                <span style={{ fontSize: 12, color: T3 }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-          {setores.map(setor => {
-            const s = statsMap[setor.name];
-            const members = teamBySetor[setor.name] || [];
-            const isActive = selected === setor.name;
-            const openCount = Number(s?.open || 0);
-            const criticalCount = Number(s?.critical || 0);
+        {/* Sector cards */}
+        {isLoading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            {Array(6).fill(0).map((_, i) => (
+              <div key={i} style={{ height: 160, background: S, border: `1px solid ${B}`, borderRadius: 18 }} className="skeleton" />
+            ))}
+          </div>
+        ) : setores.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 32px' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏢</div>
+            <p style={{ fontSize: 16, fontWeight: 700, color: T, marginBottom: 8 }}>Nenhum setor cadastrado</p>
+            <p style={{ fontSize: 14, color: T3, marginBottom: 24 }}>Crie setores para organizar e rotear chamados automaticamente.</p>
+            <button onClick={() => { setEditing(null); setModalOpen(true); }}
+              style={{ background: T, color: S, border: 'none', borderRadius: 9, padding: '11px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              Criar primeiro setor
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="grid-responsive-3">
+            {setores.map(setor => {
+              const s = statsMap[setor.name];
+              const members = (teamBySetor[setor.name] || []).filter((m: any) => m.is_active);
+              const open     = Number(s?.open     || 0);
+              const done     = Number(s?.done     || 0);
+              const critical = Number(s?.critical || 0);
+              const total    = Number(s?.total    || 0);
+              const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
 
-            return (
-              <div key={setor.id} style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setSelected(isActive ? null : setor.name)}
-                  style={{
-                    width: '100%', background: isActive ? setor.color + '15' : S,
-                    border: `2px solid ${isActive ? setor.color : B}`,
-                    borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
-                    transition: 'all 0.15s', boxShadow: isActive ? `0 4px 16px ${setor.color}20` : 'none',
-                  }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.borderColor = setor.color + '60'; } }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = B; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 22 }}>{setor.icon}</span>
-                    {criticalCount > 0 && (
-                      <span style={{ fontSize: 10, fontWeight: 800, background: '#FEF2F2', color: '#DC2626', padding: '2px 7px', borderRadius: 99 }}>
-                        {criticalCount} crítico{criticalCount > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: 13, fontWeight: 800, color: T, margin: '0 0 8px', lineHeight: 1.3 }}>{setor.name}</p>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <div>
-                      <p style={{ fontSize: 18, fontWeight: 900, color: openCount > 0 ? setor.color : T3, margin: 0, lineHeight: 1 }}>{openCount}</p>
-                      <p style={{ fontSize: 10, color: T3, margin: '1px 0 0', fontWeight: 600 }}>em aberto</p>
+              return (
+                <div key={setor.id} style={{ position: 'relative' }}>
+                  {/* Main card — link to dashboard */}
+                  <Link href={`/setores/${setor.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                    <div
+                      style={{
+                        background: S,
+                        border: `1.5px solid ${B}`,
+                        borderRadius: 18,
+                        padding: '22px 22px 18px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        borderTop: `4px solid ${setor.color}`,
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${setor.color}20`;
+                        (e.currentTarget as HTMLElement).style.borderColor = setor.color;
+                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                        (e.currentTarget as HTMLElement).style.borderColor = B;
+                        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                      }}
+                    >
+                      {/* Icon + name */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 46, height: 46, borderRadius: 13, background: setor.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                            {setor.icon}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 15, fontWeight: 800, color: T, margin: '0 0 2px' }}>{setor.name}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <Users size={11} color={T3} />
+                              <span style={{ fontSize: 11, color: T3 }}>{members.length} membro{members.length !== 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} color={T3} style={{ marginTop: 4 }} />
+                      </div>
+
+                      {/* Stats row */}
+                      <div style={{ display: 'flex', gap: 0, marginBottom: 16 }}>
+                        {[
+                          { label: 'Em aberto',  value: open,     color: '#3B82F6' },
+                          { label: 'Concluídos', value: done,     color: '#16A34A' },
+                          { label: 'Críticos',   value: critical, color: '#DC2626' },
+                        ].map((item, i) => (
+                          <div key={item.label} style={{
+                            flex: 1, textAlign: 'center',
+                            paddingLeft: i > 0 ? 0 : 0,
+                            borderLeft: i > 0 ? `1px solid ${B}` : 'none',
+                          }}>
+                            <p style={{ fontSize: 24, fontWeight: 900, color: item.value > 0 ? item.color : T3, margin: '0 0 2px', letterSpacing: '-0.03em' }}>{item.value}</p>
+                            <p style={{ fontSize: 10, fontWeight: 600, color: T3, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item.label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Progress bar */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <span style={{ fontSize: 10, color: T3, fontWeight: 600 }}>Conclusão</span>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: pct > 0 ? '#16A34A' : T3 }}>{pct}%</span>
+                        </div>
+                        <div style={{ height: 5, background: L, borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: setor.color, borderRadius: 99, transition: 'width 0.4s' }} />
+                        </div>
+                      </div>
+
+                      {/* Team avatars */}
+                      {members.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${B}` }}>
+                          <div style={{ display: 'flex' }}>
+                            {members.slice(0, 5).map((m: any, i: number) => (
+                              <div key={m.id} title={m.name} style={{
+                                width: 26, height: 26, borderRadius: '50%',
+                                background: setor.color + '25',
+                                border: `2px solid ${S}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 10, fontWeight: 800, color: setor.color,
+                                marginLeft: i > 0 ? -7 : 0,
+                              }}>
+                                {m.name?.[0]?.toUpperCase()}
+                              </div>
+                            ))}
+                            {members.length > 5 && (
+                              <div style={{ width: 26, height: 26, borderRadius: '50%', background: L, border: `2px solid ${S}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: T3, marginLeft: -7 }}>
+                                +{members.length - 5}
+                              </div>
+                            )}
+                          </div>
+                          {critical > 0 && (
+                            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#DC2626', background: '#FEF2F2', padding: '3px 8px', borderRadius: 99 }}>
+                              <AlertTriangle size={10} /> {critical} crítico{critical > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ width: 1, background: B }} />
-                    <div>
-                      <p style={{ fontSize: 18, fontWeight: 900, color: members.length > 0 ? T : T3, margin: 0, lineHeight: 1 }}>{members.length}</p>
-                      <p style={{ fontSize: 10, color: T3, margin: '1px 0 0', fontWeight: 600 }}>membros</p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Edit / Delete actions */}
-                <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 4 }}>
-                  <Link
-                    href={`/setores/${setor.id}`}
-                    onClick={e => e.stopPropagation()}
-                    title="Dashboard do setor"
-                    style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T3, textDecoration: 'none' }}
-                  >
-                    <ChevronRight size={12} />
                   </Link>
-                  <button
-                    onClick={e => { e.stopPropagation(); setEditing(setor); setModalOpen(true); }}
-                    style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T3 }}
-                    title="Editar"
-                  >
-                    <Edit2 size={12} />
-                  </button>
-                  <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      if (confirm(`Excluir o setor "${setor.name}"? Esta ação não pode ser desfeita.`)) {
-                        deleteMut.mutate(setor.id);
-                      }
-                    }}
-                    style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid #FEE2E2`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}
-                    title="Excluir"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
-        {/* Detail panel */}
-        {selected && selectedSetor && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T3, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-                <ArrowLeft size={13} /> Todos os setores
-              </button>
-              <span style={{ color: B }}>·</span>
-              <span style={{ fontSize: 20 }}>{selectedSetor.icon}</span>
-              <h2 style={{ fontSize: 18, fontWeight: 900, color: T, margin: 0 }}>{selectedSetor.name}</h2>
-              {statsMap[selected] && (
-                <>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: selectedSetor.color + '20', color: selectedSetor.color, padding: '3px 10px', borderRadius: 99 }}>
-                    {statsMap[selected].open} em aberto
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: 99 }}>
-                    {statsMap[selected].done} concluídos
-                  </span>
-                </>
-              )}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, alignItems: 'start' }}>
-              {/* Demands */}
-              <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
-                <div style={{ padding: '13px 18px', borderBottom: `1px solid ${B}`, display: 'flex', alignItems: 'center', gap: 8, background: '#FAFAF8' }}>
-                  <MessageSquare size={14} color={selectedSetor.color} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T, letterSpacing: '0.04em' }}>CHAMADOS ATRIBUÍDOS</span>
+                  {/* Edit / Delete — hover actions */}
+                  <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 4 }}>
+                    <button
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); setEditing(setor); setModalOpen(true); }}
+                      style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${B}`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T3 }}
+                      title="Editar setor"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                    <button
+                      onClick={e => {
+                        e.preventDefault(); e.stopPropagation();
+                        if (confirm(`Excluir o setor "${setor.name}"? Esta ação não pode ser desfeita.`)) {
+                          deleteMut.mutate(setor.id);
+                        }
+                      }}
+                      style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid #FEE2E2`, background: S, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}
+                      title="Excluir setor"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
-                {demandsLoading && <div style={{ padding: 20 }}>{[1,2,3].map(i => <div key={i} style={{ height: 52, background: L, borderRadius: 8, marginBottom: 8 }} />)}</div>}
-                {!demandsLoading && selectedDemands.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '48px 32px', color: T3 }}>
-                    <CheckCircle2 size={32} color={B} style={{ marginBottom: 12 }} />
-                    <p style={{ fontWeight: 700, color: T, margin: '0 0 4px' }}>Nenhum chamado atribuído</p>
-                    <p style={{ fontSize: 13, margin: 0 }}>Os chamados encaminhados para este setor aparecerão aqui.</p>
-                  </div>
-                )}
-                {!demandsLoading && selectedDemands.map((d: any) => {
-                  const sCfg = STATUS_CFG[d.status] || { label: d.status, dot: T3, color: T3 };
-                  return (
-                    <Link key={d.id} href={`/demands/${d.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', borderBottom: `1px solid ${B}`, transition: 'background 0.1s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = L)}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                      <div style={{ width: 4, height: 38, borderRadius: 99, background: PRIO_COLOR[d.priority] || B, flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: T, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</p>
-                        <p style={{ fontSize: 12, color: T3, margin: 0 }}>{d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''} · {timeAgo(d.created_at)}</p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        {d.ai_triage_data && <span style={{ display: 'flex', alignItems: 'center', gap: 3, background: AC + '20', color: '#5A7A00', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}><Zap size={9} /> IA</span>}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, background: sCfg.dot + '18', fontSize: 11, fontWeight: 600, color: sCfg.color }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: sCfg.dot }} />{sCfg.label}
-                        </span>
-                        <ChevronRight size={14} color={T3} />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-
-              {/* Team */}
-              <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 14, overflow: 'hidden' }}>
-                <div style={{ padding: '13px 18px', borderBottom: `1px solid ${B}`, display: 'flex', alignItems: 'center', gap: 8, background: '#FAFAF8' }}>
-                  <Users size={14} color={selectedSetor.color} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T, letterSpacing: '0.04em' }}>EQUIPE</span>
-                </div>
-                {(teamBySetor[selected] || []).length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px 20px', color: T3 }}>
-                    <Users size={28} color={B} style={{ marginBottom: 10 }} />
-                    <p style={{ fontSize: 13, fontWeight: 600, color: T, margin: '0 0 4px' }}>Sem membros</p>
-                    <p style={{ fontSize: 12, margin: 0 }}>Adicione funcionários em Equipe.</p>
-                  </div>
-                ) : (
-                  <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {(teamBySetor[selected] || []).map((m: any) => (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: L, borderRadius: 10 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 9, background: selectedSetor.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: selectedSetor.color, flexShrink: 0 }}>
-                          {m.name?.[0]?.toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: T, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</p>
-                          <p style={{ fontSize: 11, color: T3, margin: 0 }}>{m.funcao || m.role}</p>
-                        </div>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.is_active ? '#22C55E' : B, flexShrink: 0 }} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {statsMap[selected] && (
-                  <div style={{ padding: '12px 16px', borderTop: `1px solid ${B}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {[
-                      { label: 'Total', value: statsMap[selected].total, color: T },
-                      { label: 'Em aberto', value: statsMap[selected].open, color: selectedSetor.color },
-                      { label: 'Concluídos', value: statsMap[selected].done, color: '#16A34A' },
-                      { label: 'Críticos', value: statsMap[selected].critical, color: '#DC2626' },
-                    ].map(item => (
-                      <div key={item.label} style={{ background: L, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-                        <p style={{ fontSize: 18, fontWeight: 900, color: item.color, margin: 0 }}>{item.value}</p>
-                        <p style={{ fontSize: 10, color: T3, margin: '2px 0 0', fontWeight: 600 }}>{item.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
       </main>
