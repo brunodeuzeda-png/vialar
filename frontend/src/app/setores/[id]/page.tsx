@@ -10,7 +10,7 @@ import Header from '@/components/layout/Header';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Users, CheckCircle2, ChevronRight, RefreshCw,
-  Zap, Flame, Clock, AlertTriangle, Activity, CircleDot,
+  Zap, Flame, Clock, AlertTriangle, Activity, CircleDot, UserPlus, X,
 } from 'lucide-react';
 
 const L = '#F8F8F4', S = '#FFFFFF', B = '#E8E8E0';
@@ -63,12 +63,15 @@ export default function SetorDashboard() {
     queryFn: () => api.get('/team').then(r => r.data),
   });
 
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+
   const updateMutation = useMutation({
-    mutationFn: ({ demandId, status, condominiumId }: { demandId: string; status: string; condominiumId: string }) =>
-      api.patch(`/demands/${demandId}`, { status, condominium_id: condominiumId }),
-    onSuccess: () => {
+    mutationFn: ({ demandId, condominiumId, status, assignedToId }: { demandId: string; condominiumId: string; status?: string; assignedToId?: string | null }) =>
+      api.patch(`/demands/${demandId}`, { condominium_id: condominiumId, ...(status ? { status } : {}), ...(assignedToId !== undefined ? { assigned_to_id: assignedToId } : {}) }),
+    onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['setor-demands', id] });
-      toast.success('Status atualizado');
+      toast.success(vars.assignedToId !== undefined ? 'Responsável atribuído' : 'Status atualizado');
+      setAssigningId(null);
     },
   });
 
@@ -122,6 +125,7 @@ export default function SetorDashboard() {
 
   return (
     <div style={{ width: '100%', height: '100%', background: L, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {assigningId && <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setAssigningId(null)} />}
       <Header title={setor.name} />
 
       {/* ── Compact top bar ── */}
@@ -279,6 +283,64 @@ export default function SetorDashboard() {
                               </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+
+                              {/* Assignee picker */}
+                              <div style={{ position: 'relative' }}>
+                                {assigningId === d.id ? (
+                                  <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 50, background: S, border: `1px solid ${B}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.1)', minWidth: 180, padding: 6 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px', borderBottom: `1px solid ${B}`, marginBottom: 4 }}>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: T3 }}>ATRIBUIR A</span>
+                                      <button onClick={() => setAssigningId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T3, padding: 2, display: 'flex' }}><X size={12} /></button>
+                                    </div>
+                                    {d.assigned_to_id && (
+                                      <button
+                                        onClick={() => updateMutation.mutate({ demandId: d.id, condominiumId: d.condominium_id, assignedToId: null })}
+                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, color: '#EF4444', fontWeight: 600, textAlign: 'left' }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = '#FFF0F0')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                                      >
+                                        × Remover responsável
+                                      </button>
+                                    )}
+                                    {sectorTeam.length === 0 ? (
+                                      <p style={{ fontSize: 12, color: T3, padding: '8px 10px', margin: 0 }}>Nenhum membro no setor</p>
+                                    ) : sectorTeam.map((m: any) => (
+                                      <button
+                                        key={m.id}
+                                        onClick={() => updateMutation.mutate({ demandId: d.id, condominiumId: d.condominium_id, assignedToId: m.id })}
+                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: d.assigned_to_id === m.id ? AC + '20' : 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: d.assigned_to_id === m.id ? 700 : 500, color: T, textAlign: 'left' }}
+                                        onMouseEnter={e => { if (d.assigned_to_id !== m.id) e.currentTarget.style.background = L; }}
+                                        onMouseLeave={e => { if (d.assigned_to_id !== m.id) e.currentTarget.style.background = 'none'; }}
+                                      >
+                                        <div style={{ width: 22, height: 22, borderRadius: 6, background: `hsl(${m.name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                                          {m.name[0].toUpperCase()}
+                                        </div>
+                                        {m.name.split(' ')[0]}
+                                        {d.assigned_to_id === m.id && <span style={{ marginLeft: 'auto', fontSize: 10, color: '#5A7A00', fontWeight: 700 }}>✓</span>}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <button
+                                  onClick={() => setAssigningId(assigningId === d.id ? null : d.id)}
+                                  title={d.assigned_name ? `Responsável: ${d.assigned_name}` : 'Atribuir responsável'}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 8px', borderRadius: 8, border: `1.5px solid ${d.assigned_name ? '#3B82F620' : B}`, background: d.assigned_name ? '#3B82F608' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: d.assigned_name ? '#3B82F6' : T3, whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+                                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#3B82F6')}
+                                  onMouseLeave={e => (e.currentTarget.style.borderColor = d.assigned_name ? '#3B82F620' : B)}
+                                >
+                                  {d.assigned_name ? (
+                                    <>
+                                      <div style={{ width: 16, height: 16, borderRadius: 4, background: `hsl(${d.assigned_name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff' }}>
+                                        {d.assigned_name[0].toUpperCase()}
+                                      </div>
+                                      {d.assigned_name.split(' ')[0]}
+                                    </>
+                                  ) : (
+                                    <><UserPlus size={11} /> Atribuir</>
+                                  )}
+                                </button>
+                              </div>
+
                               {canAdvance && (
                                 <button
                                   onClick={() => updateMutation.mutate({ demandId: d.id, status: next.status, condominiumId: d.condominium_id })}
