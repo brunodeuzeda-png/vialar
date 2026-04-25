@@ -277,6 +277,16 @@ export default function SetorDashboard() {
                                   {pCfg.label}
                                 </span>
                                 {d.requester_name && <span style={{ fontSize: 11, color: T3 }}>{d.requester_name}{d.unit_identifier ? ` · Apt ${d.unit_identifier}` : ''}</span>}
+                                {d.assigned_name ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px 2px 4px', borderRadius: 99, background: '#3B82F610', border: '1px solid #3B82F625', fontSize: 10, fontWeight: 700, color: '#3B82F6' }}>
+                                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: `hsl(${d.assigned_name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff' }}>
+                                      {d.assigned_name[0].toUpperCase()}
+                                    </div>
+                                    {d.assigned_name.split(' ')[0]}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: 10, color: T3, fontStyle: 'italic' }}>Sem responsável</span>
+                                )}
                                 <span style={{ fontSize: 11, color: T3, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
                                   <Clock size={10} /> {timeAgo(d.created_at)}
                                 </span>
