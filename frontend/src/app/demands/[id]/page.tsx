@@ -78,6 +78,13 @@ export default function DemandDetailPage() {
     enabled: !!condoId,
   });
 
+  const { data: teamMembers = [] } = useQuery<any[]>({
+    queryKey: ['team'],
+    queryFn: () => api.get('/team').then(r => r.data.filter((m: any) => m.is_active)),
+  });
+
+  const [showAssignPicker, setShowAssignPicker] = useState(false);
+
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.patch(`/demands/${id}`, { ...data, condominium_id: condoId }).then(r => r.data),
     onSuccess: () => {
@@ -603,7 +610,6 @@ export default function DemandDetailPage() {
                   { icon: <AlertCircle size={13} />, label: 'Prioridade', value: PRIORITY_CONFIG[demand.priority]?.label },
                   { icon: <Calendar size={13} />, label: 'Aberto em', value: demand.created_at ? new Date(demand.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null },
                   { icon: <Clock size={13} />, label: 'Atualizado', value: demand.updated_at ? timeAgo(demand.updated_at) : null },
-                  { icon: <User size={13} />, label: 'Responsável', value: demand.assigned_name },
                   { icon: <MessageSquare size={13} />, label: 'Origem', value: demand.origin === 'WHATSAPP' ? '💬 WhatsApp' : demand.origin === 'PORTAL' ? '🌐 Portal' : demand.origin },
                 ].filter(item => item.value).map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -614,6 +620,78 @@ export default function DemandDetailPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* Responsável — always shown, interactive */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ color: T3, marginTop: 1, flexShrink: 0 }}><User size={13} /></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 11, color: T3, margin: '0 0 4px', fontWeight: 600 }}>Responsável</p>
+                    <div style={{ position: 'relative' }}>
+                      {showAssignPicker && (
+                        <>
+                          <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setShowAssignPicker(false)} />
+                          <div style={{ position: 'absolute', left: 0, top: '105%', zIndex: 50, background: S, border: `1px solid ${B}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 210, padding: 6 }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: T3, padding: '4px 10px 8px', margin: 0, borderBottom: `1px solid ${B}` }}>ATRIBUIR RESPONSÁVEL</p>
+                            {demand.assigned_to_id && (
+                              <button
+                                onClick={() => { updateMutation.mutate({ assigned_to_id: null }); setShowAssignPicker(false); }}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, color: '#EF4444', fontWeight: 600, textAlign: 'left', marginTop: 4 }}
+                                onMouseEnter={e => (e.currentTarget.style.background = '#FFF0F0')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                              >
+                                <XIcon size={12} /> Remover responsável
+                              </button>
+                            )}
+                            <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 4 }}>
+                              {teamMembers.length === 0
+                                ? <p style={{ fontSize: 12, color: T3, padding: '8px 10px', margin: 0 }}>Nenhum membro ativo</p>
+                                : teamMembers.map((m: any) => (
+                                  <button
+                                    key={m.id}
+                                    onClick={() => { updateMutation.mutate({ assigned_to_id: m.id }); setShowAssignPicker(false); }}
+                                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: demand.assigned_to_id === m.id ? '#3B82F610' : 'none', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: demand.assigned_to_id === m.id ? 700 : 500, color: T, textAlign: 'left' }}
+                                    onMouseEnter={e => { if (demand.assigned_to_id !== m.id) e.currentTarget.style.background = L; }}
+                                    onMouseLeave={e => { if (demand.assigned_to_id !== m.id) e.currentTarget.style.background = 'none'; }}
+                                  >
+                                    <div style={{ width: 26, height: 26, borderRadius: 7, background: `hsl(${m.name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                                      {m.name[0].toUpperCase()}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <p style={{ margin: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</p>
+                                      {m.funcao && <p style={{ margin: 0, fontSize: 11, color: T3 }}>{m.funcao}</p>}
+                                    </div>
+                                    {demand.assigned_to_id === m.id && <span style={{ fontSize: 11, color: '#3B82F6', fontWeight: 800 }}>✓</span>}
+                                  </button>
+                                ))
+                              }
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setShowAssignPicker(v => !v)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${demand.assigned_name ? '#3B82F630' : B}`, background: demand.assigned_name ? '#3B82F608' : L, cursor: 'pointer', width: '100%', textAlign: 'left', transition: 'all 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = '#3B82F6')}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = demand.assigned_name ? '#3B82F630' : B)}
+                      >
+                        {demand.assigned_name ? (
+                          <>
+                            <div style={{ width: 24, height: 24, borderRadius: 6, background: `hsl(${demand.assigned_name.charCodeAt(0) * 5 % 360},55%,50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                              {demand.assigned_name[0].toUpperCase()}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#3B82F6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{demand.assigned_name}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: 13, color: T3, fontStyle: 'italic' }}>Sem responsável — clique para atribuir</span>
+                        )}
+                        <ChevronDown size={13} color={T3} style={{ flexShrink: 0, marginLeft: 'auto' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
