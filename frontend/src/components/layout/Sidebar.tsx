@@ -35,12 +35,12 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside style={{
       width: '100%',
-      height: '100%',
+      height: '100vh',
       background: 'var(--bg)',
       borderRight: '1px solid var(--border)',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden',
+      overflowY: 'auto',
     }}>
       {/* Logo */}
       <div style={{
