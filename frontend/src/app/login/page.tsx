@@ -106,7 +106,7 @@ export default function LoginPage() {
       }}>
         {/* Mobile logo */}
         <div className="show-mobile" style={{ marginBottom: 40 }}>
-          <Logo size={36} />
+          <Logo size={36} variant="light" />
         </div>
 
         <div style={{ width: '100%', maxWidth: 400 }}>

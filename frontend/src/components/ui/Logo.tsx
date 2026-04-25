@@ -1,53 +1,57 @@
 interface LogoProps {
   size?: number;
   showText?: boolean;
+  variant?: 'light' | 'dark';
 }
 
-export default function Logo({ size = 32, showText = true }: LogoProps) {
-  const fontSize = size >= 30 ? 18 : 14;
+export default function Logo({ size = 32, showText = true, variant = 'dark' }: LogoProps) {
+  const textColor = variant === 'dark' ? '#F0F0F5' : '#0A0A0A';
+  const scale = size / 32;
+  const markW = 32;
+  const gap = 10;
+  const wordmarkX = markW + gap;
+  const totalW = showText ? markW + gap + 72 : markW;
+  const totalH = markW;
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ flexShrink: 0 }}
-      >
-        {/* Rounded square base — lime accent */}
-        <rect width="32" height="32" rx="8" fill="#BBFF00" />
+    <svg
+      width={totalW * scale}
+      height={totalH * scale}
+      viewBox={`0 0 ${totalW} ${totalH}`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+      aria-label="Vialar"
+    >
+      {/* ── Mark tile ── */}
+      {/* Background */}
+      <rect width="32" height="32" rx="7.5" fill="#BBFF00" />
 
-        {/* V mark — clean geometric, two diagonals converging at bottom node */}
-        <path
-          d="M7 8.5 L16 22.5 L25 8.5"
-          stroke="#0A0A0A"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
+      {/* V — two diagonal arms from top to bottom-center node */}
+      <line x1="7"  y1="9"    x2="16" y2="23.5" stroke="#0D0D0D" strokeWidth="3.2" strokeLinecap="round" />
+      <line x1="25" y1="9"    x2="16" y2="23.5" stroke="#0D0D0D" strokeWidth="3.2" strokeLinecap="round" />
 
-        {/* Bottom convergence node — the "routing point" */}
-        <circle cx="16" cy="22.5" r="2.2" fill="#0A0A0A" />
+      {/* Bottom convergence node — the "routing point" */}
+      <circle cx="16" cy="23.5" r="2.4" fill="#0D0D0D" />
 
-        {/* Top-left and top-right accent dots — signal / input points */}
-        <circle cx="7" cy="8.5" r="1.4" fill="#0A0A0A" />
-        <circle cx="25" cy="8.5" r="1.4" fill="#0A0A0A" />
-      </svg>
+      {/* Top endpoint nodes */}
+      <circle cx="7"  cy="9" r="1.6" fill="#0D0D0D" />
+      <circle cx="25" cy="9" r="1.6" fill="#0D0D0D" />
 
+      {/* ── Wordmark ── */}
       {showText && (
-        <span style={{
-          fontWeight: 900,
-          fontSize,
-          letterSpacing: '-0.05em',
-          color: 'var(--text)',
-          lineHeight: 1,
-          fontFamily: 'inherit',
-        }}>
-          Vialar
-        </span>
+        <text
+          x={wordmarkX}
+          y="23"
+          fontFamily="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+          fontWeight="800"
+          fontSize="19"
+          letterSpacing="-0.8"
+          fill={textColor}
+        >
+          vialar
+        </text>
       )}
-    </div>
+    </svg>
   );
 }
