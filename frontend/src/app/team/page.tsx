@@ -57,8 +57,8 @@ export default function TeamPage() {
   });
 
   const { data: condos = [] } = useQuery<any[]>({
-    queryKey: ['condominiums', 'all'],
-    queryFn: () => api.get('/condominiums').then(r => r.data),
+    queryKey: ['condominiums', 'active'],
+    queryFn: () => api.get('/condominiums', { params: { active: 'true' } }).then(r => r.data),
   });
 
   const createMutation = useMutation({
